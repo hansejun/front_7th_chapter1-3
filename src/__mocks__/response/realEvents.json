@@ -229,6 +229,18 @@
         "id": "ba372c87-3d6c-4fa4-a0f4-6811807cfdfa"
       },
       "notificationTime": 10
+    },
+    {
+      "id": "f9169434-91d2-49fc-829b-096799f6e56a",
+      "title": "새로운 일정",
+      "date": "2025-11-06",
+      "startTime": "19:11",
+      "endTime": "21:12",
+      "description": "포트폴리오 노션입니다.",
+      "location": "",
+      "category": "업무",
+      "repeat": { "type": "none", "interval": 1 },
+      "notificationTime": 10
     }
   ]
 }

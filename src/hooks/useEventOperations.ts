@@ -40,7 +40,15 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
   const saveEvent = async (eventData: Event | EventForm) => {
     try {
       let response;
-      if (editing) {
+      // 실제로 이벤트가 존재하는지 확인하여 수정/생성 결정
+      // 1. editing=true인 경우: 수정
+      // 2. id가 있고 현재 events 배열에 존재하는 경우: 수정 (드래그 앤 드롭)
+      // 3. 그 외: 생성
+      const hasId = 'id' in eventData && eventData.id !== undefined;
+      const existsInEvents = hasId && events.some((e) => e.id === (eventData as Event).id);
+      const isEditing = editing || existsInEvents;
+
+      if (isEditing && hasId) {
         const editingEvent = {
           ...eventData,
           // ! TEST CASE
@@ -70,7 +78,7 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
 
       await fetchEvents();
       onSave?.();
-      enqueueSnackbar(editing ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED, {
+      enqueueSnackbar(isEditing ? SUCCESS_MESSAGES.EVENT_UPDATED : SUCCESS_MESSAGES.EVENT_ADDED, {
         variant: 'success',
       });
     } catch (error) {

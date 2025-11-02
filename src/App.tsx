@@ -1,4 +1,14 @@
 import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
   ChevronLeft,
   ChevronRight,
   Close,
@@ -36,10 +46,11 @@ import {
   Typography,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import RecurringEventDialog from './components/RecurringEventDialog.tsx';
 import { useCalendarView } from './hooks/useCalendarView.ts';
+import { useDragAndDrop } from './hooks/useDragAndDrop.ts';
 import { useEventForm } from './hooks/useEventForm.ts';
 import { useEventOperations } from './hooks/useEventOperations.ts';
 import { useNotifications } from './hooks/useNotifications.ts';
@@ -54,6 +65,7 @@ import {
   getWeekDates,
   getWeeksAtMonth,
 } from './utils/dateUtils.ts';
+import { isDraggable } from './utils/dragAndDropUtils.ts';
 import { findOverlappingEvents } from './utils/eventOverlap.ts';
 import { getTimeErrorMessage } from './utils/timeValidation.ts';
 
@@ -164,8 +176,53 @@ function App() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState<Event | null>(null);
   const [recurringEditMode, setRecurringEditMode] = useState<boolean | null>(null); // true = single, false = all
   const [recurringDialogMode, setRecurringDialogMode] = useState<'edit' | 'delete'>('edit');
+  const [pendingDragUpdate, setPendingDragUpdate] = useState<Event | null>(null);
 
   const { enqueueSnackbar } = useSnackbar();
+
+  // 드래그 앤 드롭 센서 설정 (클릭과 구분하기 위해 delay 사용)
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5, // 5px 이상 이동해야 드래그 시작
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms 누르고 있어야 드래그 시작
+        tolerance: 5,
+      },
+    })
+  );
+
+  // 드래그 앤 드롭 처리
+  const handleDrop = async (updatedEvent: Event, hasOverlap: boolean, overlapping: Event[]) => {
+    if (hasOverlap) {
+      // 겹침 발생 시 경고 다이얼로그 표시
+      setOverlappingEvents(overlapping);
+      setPendingDragUpdate(updatedEvent);
+      setIsOverlapDialogOpen(true);
+    } else {
+      // 겹침 없으면 바로 업데이트
+      try {
+        await saveEvent(updatedEvent);
+        enqueueSnackbar('일정이 수정되었습니다', { variant: 'success' });
+      } catch (error) {
+        console.error(error);
+        enqueueSnackbar('일정 수정 실패', { variant: 'error' });
+      }
+    }
+  };
+
+  const { activeEvent, handleDragStart, handleDragEnd, handleDragCancel } = useDragAndDrop({
+    events,
+    onDrop: handleDrop,
+  });
+
+  // 날짜 클릭 핸들러
+  const handleDateClick = (dateString: string) => {
+    setDate(dateString);
+  };
 
   const handleRecurringConfirm = async (editSingleOnly: boolean) => {
     if (recurringDialogMode === 'edit' && pendingRecurringEdit) {
@@ -290,6 +347,96 @@ function App() {
     resetForm();
   };
 
+  // Draggable Event Component
+  const DraggableEvent = ({ event, overlay = false }: { event: Event; overlay?: boolean }) => {
+    const draggable = useDraggable({
+      id: event.id,
+      disabled: overlay || !isDraggable(event),
+    });
+
+    const isNotified = notifiedEvents.includes(event.id);
+    const isRepeating = event.repeat.type !== 'none';
+
+    const style =
+      !overlay && draggable.transform
+        ? {
+            transform: `translate3d(${draggable.transform.x}px, ${draggable.transform.y}px, 0)`,
+            opacity: draggable.isDragging ? 0.5 : 1,
+          }
+        : undefined;
+
+    return (
+      <Box
+        ref={overlay ? undefined : draggable.setNodeRef}
+        style={style}
+        {...(overlay ? {} : draggable.listeners)}
+        {...(overlay ? {} : draggable.attributes)}
+        onClick={(e) => e.stopPropagation()}
+        sx={{
+          ...eventBoxStyles.common,
+          ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
+          cursor: isDraggable(event) ? (draggable.isDragging ? 'grabbing' : 'grab') : 'default',
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          {isNotified && <Notifications fontSize="small" />}
+          {isRepeating && (
+            <Tooltip
+              title={`${event.repeat.interval}${getRepeatTypeLabel(event.repeat.type)}마다 반복${
+                event.repeat.endDate ? ` (종료: ${event.repeat.endDate})` : ''
+              }`}
+            >
+              <Repeat fontSize="small" />
+            </Tooltip>
+          )}
+          <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>
+            {event.title}
+          </Typography>
+        </Stack>
+      </Box>
+    );
+  };
+
+  // Droppable Date Cell Component
+  const DroppableDateCell = ({
+    dateString,
+    children,
+    onCellClick,
+  }: {
+    dateString: string;
+    children: React.ReactNode;
+    onCellClick?: (dateString: string) => void;
+  }) => {
+    const { setNodeRef, isOver } = useDroppable({
+      id: dateString,
+      disabled: !dateString,
+    });
+
+    const handleClick = () => {
+      if (dateString && onCellClick) {
+        onCellClick(dateString);
+      }
+    };
+
+    return (
+      <Box
+        ref={setNodeRef}
+        onClick={handleClick}
+        sx={{
+          height: '100%',
+          width: '100%',
+          minHeight: '120px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: isOver ? '#e3f2fd' : 'transparent',
+          cursor: dateString ? 'pointer' : 'default',
+        }}
+      >
+        {children}
+      </Box>
+    );
+  };
+
   const renderWeekView = () => {
     const weekDates = getWeekDates(currentDate);
     return (
@@ -308,62 +455,40 @@ function App() {
             </TableHead>
             <TableBody>
               <TableRow>
-                {weekDates.map((date) => (
-                  <TableCell
-                    key={date.toISOString()}
-                    sx={{
-                      height: '120px',
-                      verticalAlign: 'top',
-                      width: '14.28%',
-                      padding: 1,
-                      border: '1px solid #e0e0e0',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Typography variant="body2" fontWeight="bold">
-                      {date.getDate()}
-                    </Typography>
-                    {filteredEvents
-                      .filter(
-                        (event) => new Date(event.date).toDateString() === date.toDateString()
-                      )
-                      .map((event) => {
-                        const isNotified = notifiedEvents.includes(event.id);
-                        const isRepeating = event.repeat.type !== 'none';
+                {weekDates.map((date) => {
+                  // YYYY-MM-DD 형식으로 날짜 문자열 생성
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const dateString = `${year}-${month}-${day}`;
 
-                        return (
-                          <Box
-                            key={event.id}
-                            sx={{
-                              ...eventBoxStyles.common,
-                              ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
-                            }}
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              {isNotified && <Notifications fontSize="small" />}
-                              {/* ! TEST CASE */}
-                              {isRepeating && (
-                                <Tooltip
-                                  title={`${event.repeat.interval}${getRepeatTypeLabel(event.repeat.type)}마다 반복${
-                                    event.repeat.endDate ? ` (종료: ${event.repeat.endDate})` : ''
-                                  }`}
-                                >
-                                  <Repeat fontSize="small" />
-                                </Tooltip>
-                              )}
-                              <Typography
-                                variant="caption"
-                                noWrap
-                                sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
-                              >
-                                {event.title}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        );
-                      })}
-                  </TableCell>
-                ))}
+                  return (
+                    <TableCell
+                      key={date.toISOString()}
+                      sx={{
+                        height: '120px',
+                        verticalAlign: 'top',
+                        width: '14.28%',
+                        padding: 1,
+                        border: '1px solid #e0e0e0',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {date.getDate()}
+                        </Typography>
+                        {filteredEvents
+                          .filter(
+                            (event) => new Date(event.date).toDateString() === date.toDateString()
+                          )
+                          .map((event) => (
+                            <DraggableEvent key={event.id} event={event} />
+                          ))}
+                      </DroppableDateCell>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             </TableBody>
           </Table>
@@ -410,7 +535,7 @@ function App() {
                         }}
                       >
                         {day && (
-                          <>
+                          <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
                             <Typography variant="body2" fontWeight="bold">
                               {day}
                             </Typography>
@@ -419,51 +544,10 @@ function App() {
                                 {holiday}
                               </Typography>
                             )}
-                            {getEventsForDay(filteredEvents, day).map((event) => {
-                              const isNotified = notifiedEvents.includes(event.id);
-                              const isRepeating = event.repeat.type !== 'none';
-
-                              return (
-                                <Box
-                                  key={event.id}
-                                  sx={{
-                                    p: 0.5,
-                                    my: 0.5,
-                                    backgroundColor: isNotified ? '#ffebee' : '#f5f5f5',
-                                    borderRadius: 1,
-                                    fontWeight: isNotified ? 'bold' : 'normal',
-                                    color: isNotified ? '#d32f2f' : 'inherit',
-                                    minHeight: '18px',
-                                    width: '100%',
-                                    overflow: 'hidden',
-                                  }}
-                                >
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                    {isNotified && <Notifications fontSize="small" />}
-                                    {/* ! TEST CASE */}
-                                    {isRepeating && (
-                                      <Tooltip
-                                        title={`${event.repeat.interval}${getRepeatTypeLabel(event.repeat.type)}마다 반복${
-                                          event.repeat.endDate
-                                            ? ` (종료: ${event.repeat.endDate})`
-                                            : ''
-                                        }`}
-                                      >
-                                        <Repeat fontSize="small" />
-                                      </Tooltip>
-                                    )}
-                                    <Typography
-                                      variant="caption"
-                                      noWrap
-                                      sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}
-                                    >
-                                      {event.title}
-                                    </Typography>
-                                  </Stack>
-                                </Box>
-                              );
-                            })}
-                          </>
+                            {getEventsForDay(filteredEvents, day).map((event) => (
+                              <DraggableEvent key={event.id} event={event} />
+                            ))}
+                          </DroppableDateCell>
                         )}
                       </TableCell>
                     );
@@ -697,8 +781,18 @@ function App() {
             </IconButton>
           </Stack>
 
-          {view === 'week' && renderWeekView()}
-          {view === 'month' && renderMonthView()}
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            {view === 'week' && renderWeekView()}
+            {view === 'month' && renderMonthView()}
+            <DragOverlay>
+              {activeEvent ? <DraggableEvent event={activeEvent} overlay={true} /> : null}
+            </DragOverlay>
+          </DndContext>
         </Stack>
 
         <Stack
@@ -784,7 +878,13 @@ function App() {
         </Stack>
       </Stack>
 
-      <Dialog open={isOverlapDialogOpen} onClose={() => setIsOverlapDialogOpen(false)}>
+      <Dialog
+        open={isOverlapDialogOpen}
+        onClose={() => {
+          setIsOverlapDialogOpen(false);
+          setPendingDragUpdate(null);
+        }}
+      >
         <DialogTitle>일정 겹침 경고</DialogTitle>
         <DialogContent>
           <DialogContentText>다음 일정과 겹칩니다:</DialogContentText>
@@ -796,30 +896,50 @@ function App() {
           <DialogContentText>계속 진행하시겠습니까?</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsOverlapDialogOpen(false)}>취소</Button>
           <Button
-            color="error"
             onClick={() => {
               setIsOverlapDialogOpen(false);
-              saveEvent({
-                id: editingEvent ? editingEvent.id : undefined,
-                title,
-                date,
-                startTime,
-                endTime,
-                description,
-                location,
-                category,
-                repeat: {
-                  type: isRepeating ? repeatType : 'none',
-                  interval: repeatInterval,
-                  endDate: repeatEndDate || undefined,
-                },
-                notificationTime,
-              });
+              setPendingDragUpdate(null);
             }}
           >
-            계속 진행
+            취소
+          </Button>
+          <Button
+            color="error"
+            onClick={async () => {
+              setIsOverlapDialogOpen(false);
+              try {
+                if (pendingDragUpdate) {
+                  // 드래그 앤 드롭으로 인한 겹침
+                  await saveEvent(pendingDragUpdate);
+                  setPendingDragUpdate(null);
+                  enqueueSnackbar('일정이 수정되었습니다', { variant: 'success' });
+                } else {
+                  // 일반 폼 저장으로 인한 겹침
+                  await saveEvent({
+                    id: editingEvent ? editingEvent.id : undefined,
+                    title,
+                    date,
+                    startTime,
+                    endTime,
+                    description,
+                    location,
+                    category,
+                    repeat: {
+                      type: isRepeating ? repeatType : 'none',
+                      interval: repeatInterval,
+                      endDate: repeatEndDate || undefined,
+                    },
+                    notificationTime,
+                  });
+                }
+              } catch (error) {
+                console.error(error);
+                enqueueSnackbar('일정 수정 실패', { variant: 'error' });
+              }
+            }}
+          >
+            계속
           </Button>
         </DialogActions>
       </Dialog>

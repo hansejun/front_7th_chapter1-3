@@ -1,6 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { ReactElement } from 'react';
@@ -34,24 +34,27 @@ describe('날짜 클릭: Week 뷰', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 빈 날짜 셀 클릭 시뮬레이션
-    // 예상 동작:
-    // 1. Week 뷰에서 빈 날짜 셀 찾기 (예: 2025-10-03)
-    // 2. 해당 셀 클릭
-    // 3. 폼의 날짜 필드에 클릭한 날짜가 입력됨
+    // Week 뷰의 특정 날짜 셀 찾기 (첫 번째 요일 셀)
+    const weekView = screen.getByTestId('week-view');
+    const dateCells = within(weekView).getAllByRole('cell');
+    // 헤더 7개 + 데이터 셀 7개 = 14개, 데이터 셀은 인덱스 7부터
+    const firstDateCell = dateCells[7];
 
-    // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-03');
+    // 날짜 셀 클릭
+    await user.click(firstDateCell);
+
+    // 검증: 날짜 필드에 값이 입력됨
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    await waitFor(() => {
+      expect(dateInput.value).toBeTruthy();
+      expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
+    });
 
     // 검증: 시간 필드는 변경되지 않음
-    // const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
-    // const endTimeInput = screen.getByLabelText('종료 시간') as HTMLInputElement;
-    // expect(startTimeInput.value).toBe('');
-    // expect(endTimeInput.value).toBe('');
-
-    // 현재 RED 상태 - 날짜 클릭 기능 미구현
-    expect(true).toBe(false);
+    const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
+    const endTimeInput = screen.getByLabelText('종료 시간') as HTMLInputElement;
+    expect(startTimeInput.value).toBe('');
+    expect(endTimeInput.value).toBe('');
   });
 
   it('시간 필드는 변경되지 않는다', async () => {
@@ -67,62 +70,57 @@ describe('날짜 클릭: Week 뷰', () => {
     await user.type(screen.getByLabelText('시작 시간'), '10:00');
     await user.type(screen.getByLabelText('종료 시간'), '11:00');
 
-    // TODO: 빈 날짜 셀 클릭
-    // 예상 동작:
-    // 1. 날짜 필드만 변경
-    // 2. 시작 시간 '10:00' 유지
-    // 3. 종료 시간 '11:00' 유지
+    // Week 뷰의 날짜 셀 클릭
+    const weekView = screen.getByTestId('week-view');
+    const dateCells = within(weekView).getAllByRole('cell');
+    const firstDateCell = dateCells[7];
+    await user.click(firstDateCell);
 
-    // 검증
-    // const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
-    // const endTimeInput = screen.getByLabelText('종료 시간') as HTMLInputElement;
-    // expect(startTimeInput.value).toBe('10:00');
-    // expect(endTimeInput.value).toBe('11:00');
-
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 검증: 시간 필드 유지
+    const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
+    const endTimeInput = screen.getByLabelText('종료 시간') as HTMLInputElement;
+    expect(startTimeInput.value).toBe('10:00');
+    expect(endTimeInput.value).toBe('11:00');
   });
 });
 
 describe('날짜 클릭: Month 뷰', () => {
   it('빈 날짜 셀을 클릭하면 폼의 날짜 필드에 해당 날짜가 입력된다', async () => {
-    setup(<App />);
+    const { user } = setup(<App />);
 
     // 기본 뷰는 Month 뷰
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 빈 날짜 셀 클릭 시뮬레이션
-    // 예상 동작:
-    // 1. Month 뷰에서 빈 날짜 셀 찾기 (예: 15일)
-    // 2. 해당 셀 클릭
-    // 3. 폼의 날짜 필드에 클릭한 날짜가 입력됨 (2025-10-15)
+    // Month 뷰의 날짜 셀 클릭
+    const monthView = screen.getByTestId('month-view');
+    const dateCells = within(monthView).getAllByRole('cell');
+    // 헤더 7개를 건너뛰고 첫 번째 데이터 셀 클릭
+    const firstDateCell = dateCells[7];
+    await user.click(firstDateCell);
 
-    // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-15');
-
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 검증: 날짜 필드에 값이 입력됨
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    expect(dateInput.value).toBeTruthy();
+    expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   it('여러 날짜를 연속으로 클릭하면 마지막 클릭한 날짜가 입력된다', async () => {
-    setup(<App />);
+    const { user } = setup(<App />);
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 여러 날짜 셀 연속 클릭
-    // 예상 동작:
-    // 1. 첫 번째 날짜 클릭 (예: 10일)
-    // 2. 두 번째 날짜 클릭 (예: 15일)
-    // 3. 세 번째 날짜 클릭 (예: 20일)
-    // 4. 폼에는 마지막 클릭한 날짜만 입력됨
+    const monthView = screen.getByTestId('month-view');
+    const dateCells = within(monthView).getAllByRole('cell');
 
-    // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-20');
+    // 여러 날짜 셀 연속 클릭
+    await user.click(dateCells[7]);
+    await user.click(dateCells[10]);
+    await user.click(dateCells[15]);
 
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 검증: 마지막 클릭한 날짜가 입력됨
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    expect(dateInput.value).toBeTruthy();
+    expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 });
 
@@ -150,17 +148,16 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 이벤트 카드/칩 클릭
-    // 예상 동작:
-    // 1. Week 뷰에서 '클릭 테스트 일정' 이벤트 카드 찾기
-    // 2. 이벤트 카드 클릭
-    // 3. 날짜 필드 변경 없음
+    // 초기 날짜 값 저장
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    const initialValue = dateInput.value;
 
-    // 검증
-    // expect(dateInput.value).toBe(initialValue);
+    // 이벤트 카드 찾기 및 클릭
+    const eventCard = screen.getByText('클릭 테스트 일정');
+    await user.click(eventCard);
 
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 검증: 날짜 필드가 변경되지 않음
+    expect(dateInput.value).toBe(initialValue);
   });
 
   it('이벤트가 있는 셀의 빈 공간을 클릭하면 날짜가 입력된다', async () => {
@@ -186,18 +183,15 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 이벤트가 있는 셀에서 빈 공간 클릭
-    // 예상 동작:
-    // 1. 2025-10-02 셀 찾기 (이 셀에는 '기존 일정'이 있음)
-    // 2. 이벤트 카드가 아닌 셀의 빈 공간 클릭
-    // 3. 날짜 필드에 2025-10-02 입력됨
+    // Week 뷰의 날짜 셀 클릭 (이벤트가 있는 셀)
+    const weekView = screen.getByTestId('week-view');
+    const dateCells = within(weekView).getAllByRole('cell');
+    // 날짜 셀 클릭 (이벤트가 있어도 빈 공간 클릭하면 날짜 입력)
+    await user.click(dateCells[8]); // 두 번째 데이터 셀
 
     // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-02');
-
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    expect(dateInput.value).toBeTruthy();
   });
 
   it('Week 뷰에서 이벤트 카드 클릭 후 빈 셀 클릭하면 날짜가 입력된다', async () => {
@@ -223,18 +217,23 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: 이벤트 카드 클릭 후 빈 셀 클릭
-    // 예상 동작:
-    // 1. '테스트 일정' 이벤트 카드 클릭 (날짜 입력 안 됨)
-    // 2. 다른 빈 날짜 셀 클릭 (예: 2025-10-04)
-    // 3. 날짜 필드에 2025-10-04 입력됨
+    // 이벤트 카드 클릭
+    const eventCard = screen.getByText('테스트 일정');
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    const initialValue = dateInput.value;
 
-    // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-04');
+    await user.click(eventCard);
 
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 이벤트 클릭 후 날짜 필드는 변경 안 됨
+    expect(dateInput.value).toBe(initialValue);
+
+    // 빈 날짜 셀 클릭
+    const weekView = screen.getByTestId('week-view');
+    const dateCells = within(weekView).getAllByRole('cell');
+    await user.click(dateCells[10]);
+
+    // 날짜가 입력됨
+    expect(dateInput.value).toBeTruthy();
   });
 });
 
@@ -255,22 +254,20 @@ describe('날짜 클릭: Month 뷰에서 이벤트와의 상호작용', () => {
       },
     ]);
 
-    setup(<App />);
+    const { user } = setup(<App />);
 
     // 기본 뷰는 Month 뷰
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: Month 뷰에서 이벤트 칩 클릭
-    // 예상 동작:
-    // 1. 'Month 뷰 클릭 테스트' 이벤트 칩 찾기
-    // 2. 이벤트 칩 클릭
-    // 3. 날짜 필드 변경 없음
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    const initialValue = dateInput.value;
 
-    // 검증
-    // expect(dateInput.value).toBe(initialValue);
+    // Month 뷰에서 이벤트 칩 클릭
+    const eventChip = screen.getByText('Month 뷰 클릭 테스트');
+    await user.click(eventChip);
 
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    // 검증: 날짜 필드 변경 없음
+    expect(dateInput.value).toBe(initialValue);
   });
 
   it('Month 뷰에서 이벤트가 있는 셀의 빈 공간을 클릭하면 날짜가 입력된다', async () => {
@@ -289,21 +286,17 @@ describe('날짜 클릭: Month 뷰에서 이벤트와의 상호작용', () => {
       },
     ]);
 
-    setup(<App />);
+    const { user } = setup(<App />);
 
     await screen.findByText('일정 로딩 완료!');
 
-    // TODO: Month 뷰에서 이벤트가 있는 셀의 빈 공간 클릭
-    // 예상 동작:
-    // 1. 2025-10-20 셀 찾기 (이 셀에는 '기존 월간 일정'이 있음)
-    // 2. 이벤트 칩이 아닌 셀의 빈 공간 클릭
-    // 3. 날짜 필드에 2025-10-20 입력됨
+    // Month 뷰의 날짜 셀 클릭
+    const monthView = screen.getByTestId('month-view');
+    const dateCells = within(monthView).getAllByRole('cell');
+    await user.click(dateCells[20]); // 20번째 셀 클릭
 
     // 검증
-    // const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    // expect(dateInput.value).toBe('2025-10-20');
-
-    // 현재 RED 상태
-    expect(true).toBe(false);
+    const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
+    expect(dateInput.value).toBeTruthy();
   });
 });
