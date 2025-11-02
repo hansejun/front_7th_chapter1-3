@@ -45,7 +45,7 @@ interface RecurringEventDialogProps {
   open: boolean;
   /** Callback fired when the dialog should be closed */
   onClose: () => void;
-  /** Callback fired when user confirms an action */
+  /** Callback fired when user confirms an action - receives true for single instance operation, false for series-wide operation */
   onConfirm: (editSingleOnly: boolean) => void;
   /** The event being operated on */
   event: Event | null;

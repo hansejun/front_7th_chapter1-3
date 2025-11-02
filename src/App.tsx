@@ -347,7 +347,7 @@ function App() {
               <TableRow>
                 {weekDates.map((date) => {
                   const day = date.getDate();
-                  const dateString = formatDate(currentDate, day);
+                  const dateString = formatDate(date);
 
                   return (
                     <TableCell key={date.toISOString()} sx={tableCellStyles.data}>

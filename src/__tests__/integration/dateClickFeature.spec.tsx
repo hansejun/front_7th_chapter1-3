@@ -1,6 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { ReactElement } from 'react';
@@ -34,21 +34,16 @@ describe('날짜 클릭: Week 뷰', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // Week 뷰의 특정 날짜 셀 찾기 (첫 번째 요일 셀)
+    // Week 뷰에서 9월 28일(일요일) 셀 클릭
     const weekView = screen.getByTestId('week-view');
-    const dateCells = within(weekView).getAllByRole('cell');
-    // 헤더 7개 + 데이터 셀 7개 = 14개, 데이터 셀은 인덱스 7부터
-    const firstDateCell = dateCells[7];
+    const dateCell = weekView.querySelector('[data-date="2025-09-28"]');
+    if (!dateCell) throw new Error('Date cell not found');
 
-    // 날짜 셀 클릭
-    await user.click(firstDateCell);
+    await user.click(dateCell);
 
-    // 검증: 날짜 필드에 값이 입력됨
+    // 검증: 날짜 필드에 2025-09-28이 입력됨
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    await waitFor(() => {
-      expect(dateInput.value).toBeTruthy();
-      expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
-    });
+    expect(dateInput.value).toBe('2025-09-28');
 
     // 검증: 시간 필드는 변경되지 않음
     const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
@@ -70,11 +65,12 @@ describe('날짜 클릭: Week 뷰', () => {
     await user.type(screen.getByLabelText('시작 시간'), '10:00');
     await user.type(screen.getByLabelText('종료 시간'), '11:00');
 
-    // Week 뷰의 날짜 셀 클릭
+    // Week 뷰에서 9월 28일 셀 클릭
     const weekView = screen.getByTestId('week-view');
-    const dateCells = within(weekView).getAllByRole('cell');
-    const firstDateCell = dateCells[7];
-    await user.click(firstDateCell);
+    const dateCell = weekView.querySelector('[data-date="2025-09-28"]');
+    if (!dateCell) throw new Error('Date cell not found');
+
+    await user.click(dateCell);
 
     // 검증: 시간 필드 유지
     const startTimeInput = screen.getByLabelText('시작 시간') as HTMLInputElement;
@@ -88,20 +84,18 @@ describe('날짜 클릭: Month 뷰', () => {
   it('빈 날짜 셀을 클릭하면 폼의 날짜 필드에 해당 날짜가 입력된다', async () => {
     const { user } = setup(<App />);
 
-    // 기본 뷰는 Month 뷰
+    // 기본 뷰는 Month 뷰 (2025년 10월 달력 표시)
     await screen.findByText('일정 로딩 완료!');
 
-    // Month 뷰의 날짜 셀 클릭
-    const monthView = screen.getByTestId('month-view');
-    const dateCells = within(monthView).getAllByRole('cell');
-    // 헤더 7개를 건너뛰고 첫 번째 데이터 셀 클릭
-    const firstDateCell = dateCells[7];
-    await user.click(firstDateCell);
+    // Month 뷰에서 2025-10-16 날짜의 DroppableDateCell을 찾아 클릭
+    const dateCell = screen.getByTestId('month-view').querySelector('[data-date="2025-10-16"]');
+    if (!dateCell) throw new Error('Date cell not found');
 
-    // 검증: 날짜 필드에 값이 입력됨
+    await user.click(dateCell);
+
+    // 검증: 날짜 필드에 2025-10-16이 정확히 입력됨
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    expect(dateInput.value).toBeTruthy();
-    expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(dateInput.value).toBe('2025-10-16');
   });
 
   it('여러 날짜를 연속으로 클릭하면 마지막 클릭한 날짜가 입력된다', async () => {
@@ -110,17 +104,23 @@ describe('날짜 클릭: Month 뷰', () => {
     await screen.findByText('일정 로딩 완료!');
 
     const monthView = screen.getByTestId('month-view');
-    const dateCells = within(monthView).getAllByRole('cell');
 
-    // 여러 날짜 셀 연속 클릭
-    await user.click(dateCells[7]);
-    await user.click(dateCells[10]);
-    await user.click(dateCells[15]);
+    // 여러 날짜 셀 연속 클릭 (10일 -> 15일 -> 20일)
+    const dateCell10 = monthView.querySelector('[data-date="2025-10-10"]');
+    const dateCell15 = monthView.querySelector('[data-date="2025-10-15"]');
+    const dateCell20 = monthView.querySelector('[data-date="2025-10-20"]');
 
-    // 검증: 마지막 클릭한 날짜가 입력됨
+    if (!dateCell10 || !dateCell15 || !dateCell20) {
+      throw new Error('Date cells not found');
+    }
+
+    await user.click(dateCell10);
+    await user.click(dateCell15);
+    await user.click(dateCell20);
+
+    // 검증: 마지막 클릭한 날짜(2025-10-20)가 입력됨
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    expect(dateInput.value).toBeTruthy();
-    expect(dateInput.value).toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(dateInput.value).toBe('2025-10-20');
   });
 });
 
@@ -130,7 +130,7 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
       {
         id: 'click-test-1',
         title: '클릭 테스트 일정',
-        date: '2025-10-05',
+        date: '2025-09-30',
         startTime: '10:00',
         endTime: '11:00',
         description: '이벤트 카드 클릭 테스트',
@@ -152,8 +152,9 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
     const initialValue = dateInput.value;
 
-    // 이벤트 카드 찾기 및 클릭
-    const eventCard = screen.getByText('클릭 테스트 일정');
+    // Week 뷰 내에서 이벤트 카드 찾기 및 클릭
+    const weekView = screen.getByTestId('week-view');
+    const eventCard = within(weekView).getByText('클릭 테스트 일정');
     await user.click(eventCard);
 
     // 검증: 날짜 필드가 변경되지 않음
@@ -183,15 +184,16 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // Week 뷰의 날짜 셀 클릭 (이벤트가 있는 셀)
+    // Week 뷰에서 10월 2일 셀 클릭 (이벤트가 있는 날)
     const weekView = screen.getByTestId('week-view');
-    const dateCells = within(weekView).getAllByRole('cell');
-    // 날짜 셀 클릭 (이벤트가 있어도 빈 공간 클릭하면 날짜 입력)
-    await user.click(dateCells[8]); // 두 번째 데이터 셀
+    const dateCell = weekView.querySelector('[data-date="2025-10-02"]');
+    if (!dateCell) throw new Error('Date cell not found');
 
-    // 검증
+    await user.click(dateCell);
+
+    // 검증: 날짜가 입력됨
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    expect(dateInput.value).toBeTruthy();
+    expect(dateInput.value).toBe('2025-10-02');
   });
 
   it('Week 뷰에서 이벤트 카드 클릭 후 빈 셀 클릭하면 날짜가 입력된다', async () => {
@@ -217,8 +219,9 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // 이벤트 카드 클릭
-    const eventCard = screen.getByText('테스트 일정');
+    // Week 뷰 내에서 이벤트 카드 클릭
+    const weekView = screen.getByTestId('week-view');
+    const eventCard = within(weekView).getByText('테스트 일정');
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
     const initialValue = dateInput.value;
 
@@ -227,13 +230,14 @@ describe('날짜 클릭: 이벤트와의 상호작용', () => {
     // 이벤트 클릭 후 날짜 필드는 변경 안 됨
     expect(dateInput.value).toBe(initialValue);
 
-    // 빈 날짜 셀 클릭
-    const weekView = screen.getByTestId('week-view');
-    const dateCells = within(weekView).getAllByRole('cell');
-    await user.click(dateCells[10]);
+    // 빈 날짜 셀 클릭 (10월 3일)
+    const dateCell = weekView.querySelector('[data-date="2025-10-03"]');
+    if (!dateCell) throw new Error('Date cell not found');
+
+    await user.click(dateCell);
 
     // 날짜가 입력됨
-    expect(dateInput.value).toBeTruthy();
+    expect(dateInput.value).toBe('2025-10-03');
   });
 });
 
@@ -262,8 +266,9 @@ describe('날짜 클릭: Month 뷰에서 이벤트와의 상호작용', () => {
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
     const initialValue = dateInput.value;
 
-    // Month 뷰에서 이벤트 칩 클릭
-    const eventChip = screen.getByText('Month 뷰 클릭 테스트');
+    // Month 뷰 내에서 이벤트 칩 클릭
+    const monthView = screen.getByTestId('month-view');
+    const eventChip = within(monthView).getByText('Month 뷰 클릭 테스트');
     await user.click(eventChip);
 
     // 검증: 날짜 필드 변경 없음
@@ -290,13 +295,15 @@ describe('날짜 클릭: Month 뷰에서 이벤트와의 상호작용', () => {
 
     await screen.findByText('일정 로딩 완료!');
 
-    // Month 뷰의 날짜 셀 클릭
+    // Month 뷰에서 10월 20일 셀 클릭 (이벤트가 있는 날)
     const monthView = screen.getByTestId('month-view');
-    const dateCells = within(monthView).getAllByRole('cell');
-    await user.click(dateCells[20]); // 20번째 셀 클릭
+    const dateCell = monthView.querySelector('[data-date="2025-10-20"]');
+    if (!dateCell) throw new Error('Date cell not found');
 
-    // 검증
+    await user.click(dateCell);
+
+    // 검증: 날짜가 입력됨
     const dateInput = screen.getByLabelText('날짜') as HTMLInputElement;
-    expect(dateInput.value).toBeTruthy();
+    expect(dateInput.value).toBe('2025-10-20');
   });
 });

@@ -3,9 +3,11 @@ import { Box } from '@mui/material';
 import React from 'react';
 
 interface DroppableDateCellProps {
+  /** The date string in YYYY-MM-DD format for this cell */
   dateString: string;
   children: React.ReactNode;
-  onCellClick?: (dateString: string) => void;
+  /** Callback fired when the cell is clicked with the date string */
+  onCellClick?: (_date: string) => void;
 }
 
 export const DroppableDateCell = ({
@@ -28,6 +30,7 @@ export const DroppableDateCell = ({
     <Box
       ref={setNodeRef}
       onClick={handleClick}
+      data-date={dateString}
       sx={{
         height: '100%',
         width: '100%',
