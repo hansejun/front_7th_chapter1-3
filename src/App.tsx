@@ -3,8 +3,6 @@ import {
   DragOverlay,
   MouseSensor,
   TouchSensor,
-  useDraggable,
-  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -48,6 +46,8 @@ import {
 import { useSnackbar } from 'notistack';
 import React, { useState } from 'react';
 
+import { DraggableEvent } from './components/DraggableEvent.tsx';
+import { DroppableDateCell } from './components/DroppableDateCell.tsx';
 import RecurringEventDialog from './components/RecurringEventDialog.tsx';
 import { useCalendarView } from './hooks/useCalendarView.ts';
 import { useDragAndDrop } from './hooks/useDragAndDrop.ts';
@@ -65,8 +65,8 @@ import {
   getWeekDates,
   getWeeksAtMonth,
 } from './utils/dateUtils.ts';
-import { isDraggable } from './utils/dragAndDropUtils.ts';
 import { findOverlappingEvents } from './utils/eventOverlap.ts';
+import { getRepeatTypeLabel } from './utils/repeatTypeUtils.ts';
 import { getTimeErrorMessage } from './utils/timeValidation.ts';
 
 const categories = ['업무', '개인', '가족', '기타'];
@@ -81,41 +81,21 @@ const notificationOptions = [
   { value: 1440, label: '1일 전' },
 ];
 
-// 스타일 상수
-const eventBoxStyles = {
-  notified: {
-    backgroundColor: '#ffebee',
-    fontWeight: 'bold',
-    color: '#d32f2f',
+// TableCell 스타일 상수
+const tableCellStyles = {
+  header: {
+    width: '14.28%',
+    padding: 1,
+    textAlign: 'center' as const,
   },
-  normal: {
-    backgroundColor: '#f5f5f5',
-    fontWeight: 'normal',
-    color: 'inherit',
-  },
-  common: {
-    p: 0.5,
-    my: 0.5,
-    borderRadius: 1,
-    minHeight: '18px',
-    width: '100%',
+  data: {
+    height: '120px',
+    verticalAlign: 'top' as const,
+    width: '14.28%',
+    padding: 1,
+    border: '1px solid #e0e0e0',
     overflow: 'hidden',
   },
-};
-
-const getRepeatTypeLabel = (type: RepeatType): string => {
-  switch (type) {
-    case 'daily':
-      return '일';
-    case 'weekly':
-      return '주';
-    case 'monthly':
-      return '월';
-    case 'yearly':
-      return '년';
-    default:
-      return '';
-  }
 };
 
 function App() {
@@ -347,96 +327,6 @@ function App() {
     resetForm();
   };
 
-  // Draggable Event Component
-  const DraggableEvent = ({ event, overlay = false }: { event: Event; overlay?: boolean }) => {
-    const draggable = useDraggable({
-      id: event.id,
-      disabled: overlay || !isDraggable(event),
-    });
-
-    const isNotified = notifiedEvents.includes(event.id);
-    const isRepeating = event.repeat.type !== 'none';
-
-    const style =
-      !overlay && draggable.transform
-        ? {
-            transform: `translate3d(${draggable.transform.x}px, ${draggable.transform.y}px, 0)`,
-            opacity: draggable.isDragging ? 0.5 : 1,
-          }
-        : undefined;
-
-    return (
-      <Box
-        ref={overlay ? undefined : draggable.setNodeRef}
-        style={style}
-        {...(overlay ? {} : draggable.listeners)}
-        {...(overlay ? {} : draggable.attributes)}
-        onClick={(e) => e.stopPropagation()}
-        sx={{
-          ...eventBoxStyles.common,
-          ...(isNotified ? eventBoxStyles.notified : eventBoxStyles.normal),
-          cursor: isDraggable(event) ? (draggable.isDragging ? 'grabbing' : 'grab') : 'default',
-        }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          {isNotified && <Notifications fontSize="small" />}
-          {isRepeating && (
-            <Tooltip
-              title={`${event.repeat.interval}${getRepeatTypeLabel(event.repeat.type)}마다 반복${
-                event.repeat.endDate ? ` (종료: ${event.repeat.endDate})` : ''
-              }`}
-            >
-              <Repeat fontSize="small" />
-            </Tooltip>
-          )}
-          <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem', lineHeight: 1.2 }}>
-            {event.title}
-          </Typography>
-        </Stack>
-      </Box>
-    );
-  };
-
-  // Droppable Date Cell Component
-  const DroppableDateCell = ({
-    dateString,
-    children,
-    onCellClick,
-  }: {
-    dateString: string;
-    children: React.ReactNode;
-    onCellClick?: (dateString: string) => void;
-  }) => {
-    const { setNodeRef, isOver } = useDroppable({
-      id: dateString,
-      disabled: !dateString,
-    });
-
-    const handleClick = () => {
-      if (dateString && onCellClick) {
-        onCellClick(dateString);
-      }
-    };
-
-    return (
-      <Box
-        ref={setNodeRef}
-        onClick={handleClick}
-        sx={{
-          height: '100%',
-          width: '100%',
-          minHeight: '120px',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: isOver ? '#e3f2fd' : 'transparent',
-          cursor: dateString ? 'pointer' : 'default',
-        }}
-      >
-        {children}
-      </Box>
-    );
-  };
-
   const renderWeekView = () => {
     const weekDates = getWeekDates(currentDate);
     return (
@@ -447,7 +337,7 @@ function App() {
             <TableHead>
               <TableRow>
                 {weekDays.map((day) => (
-                  <TableCell key={day} sx={{ width: '14.28%', padding: 1, textAlign: 'center' }}>
+                  <TableCell key={day} sx={tableCellStyles.header}>
                     {day}
                   </TableCell>
                 ))}
@@ -456,34 +346,25 @@ function App() {
             <TableBody>
               <TableRow>
                 {weekDates.map((date) => {
-                  // YYYY-MM-DD 형식으로 날짜 문자열 생성
-                  const year = date.getFullYear();
-                  const month = String(date.getMonth() + 1).padStart(2, '0');
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const dateString = `${year}-${month}-${day}`;
+                  const day = date.getDate();
+                  const dateString = formatDate(currentDate, day);
 
                   return (
-                    <TableCell
-                      key={date.toISOString()}
-                      sx={{
-                        height: '120px',
-                        verticalAlign: 'top',
-                        width: '14.28%',
-                        padding: 1,
-                        border: '1px solid #e0e0e0',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <TableCell key={date.toISOString()} sx={tableCellStyles.data}>
                       <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
                         <Typography variant="body2" fontWeight="bold">
-                          {date.getDate()}
+                          {day}
                         </Typography>
                         {filteredEvents
                           .filter(
                             (event) => new Date(event.date).toDateString() === date.toDateString()
                           )
                           .map((event) => (
-                            <DraggableEvent key={event.id} event={event} />
+                            <DraggableEvent
+                              key={event.id}
+                              event={event}
+                              notifiedEvents={notifiedEvents}
+                            />
                           ))}
                       </DroppableDateCell>
                     </TableCell>
@@ -508,7 +389,7 @@ function App() {
             <TableHead>
               <TableRow>
                 {weekDays.map((day) => (
-                  <TableCell key={day} sx={{ width: '14.28%', padding: 1, textAlign: 'center' }}>
+                  <TableCell key={day} sx={tableCellStyles.header}>
                     {day}
                   </TableCell>
                 ))}
@@ -524,15 +405,7 @@ function App() {
                     return (
                       <TableCell
                         key={dayIndex}
-                        sx={{
-                          height: '120px',
-                          verticalAlign: 'top',
-                          width: '14.28%',
-                          padding: 1,
-                          border: '1px solid #e0e0e0',
-                          overflow: 'hidden',
-                          position: 'relative',
-                        }}
+                        sx={{ ...tableCellStyles.data, position: 'relative' }}
                       >
                         {day && (
                           <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
@@ -545,7 +418,11 @@ function App() {
                               </Typography>
                             )}
                             {getEventsForDay(filteredEvents, day).map((event) => (
-                              <DraggableEvent key={event.id} event={event} />
+                              <DraggableEvent
+                                key={event.id}
+                                event={event}
+                                notifiedEvents={notifiedEvents}
+                              />
                             ))}
                           </DroppableDateCell>
                         )}
@@ -790,7 +667,13 @@ function App() {
             {view === 'week' && renderWeekView()}
             {view === 'month' && renderMonthView()}
             <DragOverlay>
-              {activeEvent ? <DraggableEvent event={activeEvent} overlay={true} /> : null}
+              {activeEvent ? (
+                <DraggableEvent
+                  event={activeEvent}
+                  overlay={true}
+                  notifiedEvents={notifiedEvents}
+                />
+              ) : null}
             </DragOverlay>
           </DndContext>
         </Stack>
