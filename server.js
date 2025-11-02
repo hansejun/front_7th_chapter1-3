@@ -139,6 +139,17 @@ app.delete('/api/events-list', async (req, res) => {
   res.status(204).send();
 });
 
+app.post('/api/events/reset', async (req, res) => {
+  fs.writeFileSync(
+    `${__dirname}/src/__mocks__/response/${dbName}`,
+    JSON.stringify({
+      events: [],
+    })
+  );
+
+  res.status(204).send();
+});
+
 app.put('/api/recurring-events/:repeatId', async (req, res) => {
   const events = await getEvents();
   const repeatId = req.params.repeatId;

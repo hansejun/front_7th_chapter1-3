@@ -129,4 +129,23 @@ export default [
       },
     },
   },
+
+  // E2E Test files configuration (Playwright)
+  {
+    files: ['**/tests/e2e/**/*.{ts,tsx}'],
+    plugins: {
+      '@typescript-eslint': typescriptPlugin,
+    },
+    rules: {
+      ...typescriptPlugin.configs.recommended.rules,
+      // React hooks 규칙 비활성화 (Playwright의 use는 React Hook이 아님)
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
 ];
