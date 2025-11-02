@@ -25,6 +25,7 @@ pnpm start
 
 # 3. E2E 테스트 실행
 # (Playwright를 사용하는 경우)
+npx playwright test
 ```
 
 ## 시나리오 목록
