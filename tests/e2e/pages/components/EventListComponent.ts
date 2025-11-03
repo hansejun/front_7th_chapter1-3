@@ -117,4 +117,31 @@ export class EventListComponent {
 
     return count;
   }
+
+  /**
+   * 알림 설정이 표시되는지 확인
+   * @param notificationPattern 알림 텍스트 패턴 (예: "알림: 1분 전", /알림.*1분/)
+   */
+  async expectNotificationDisplayed(notificationPattern: string | RegExp) {
+    const locator =
+      typeof notificationPattern === 'string'
+        ? this.page.locator(`text=${notificationPattern}`)
+        : this.page.locator(`text=${notificationPattern}`);
+
+    await expect(locator.first()).toBeVisible();
+  }
+
+  /**
+   * 모든 이벤트 삭제
+   * cleanup이나 beforeEach/afterEach에서 사용합니다.
+   */
+  async deleteAllEvents() {
+    const deleteButtons = this.page.getByRole('button', { name: 'Delete event' });
+    const count = await deleteButtons.count();
+
+    for (let i = 0; i < count; i++) {
+      await deleteButtons.first().click();
+      await this.page.waitForTimeout(300);
+    }
+  }
 }

@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 import { CalendarViewComponent } from './components/CalendarViewComponent';
 import { EventFormComponent } from './components/EventFormComponent';
 import { EventListComponent } from './components/EventListComponent';
+import { OverlapDialogComponent } from './components/OverlapDialogComponent';
 import { RecurringDialogComponent } from './components/RecurringDialogComponent';
 
 /**
@@ -17,6 +18,7 @@ import { RecurringDialogComponent } from './components/RecurringDialogComponent'
  * await calendarPage.eventList.expectEventExists(title);
  * await calendarPage.recurringDialog.clickThisEventOnly();
  * await calendarPage.calendarView.expectEventOnDate(15, title);
+ * await calendarPage.overlapDialog.expectVisible();
  * ```
  *
  * 장점:
@@ -35,6 +37,9 @@ export class CalendarPage {
   /** 반복 일정 다이얼로그 컴포넌트 */
   public readonly recurringDialog: RecurringDialogComponent;
 
+  /** 일정 겹침 다이얼로그 컴포넌트 */
+  public readonly overlapDialog: OverlapDialogComponent;
+
   /** 캘린더 뷰 컴포넌트 */
   public readonly calendarView: CalendarViewComponent;
 
@@ -42,6 +47,7 @@ export class CalendarPage {
     this.eventForm = new EventFormComponent(page);
     this.eventList = new EventListComponent(page);
     this.recurringDialog = new RecurringDialogComponent(page);
+    this.overlapDialog = new OverlapDialogComponent(page);
     this.calendarView = new CalendarViewComponent(page);
   }
 }

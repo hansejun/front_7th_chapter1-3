@@ -100,7 +100,8 @@ export class EventFormComponent {
   }
 
   /**
-   * 폼 제출
+   * 폼 제출 (겹침 다이얼로그 자동 처리)
+   * 겹침 다이얼로그가 나타나면 자동으로 "계속" 버튼을 클릭합니다.
    */
   async submit() {
     await this.submitButton.click();
@@ -113,6 +114,14 @@ export class EventFormComponent {
       // Click "계속" (Continue) button to proceed with creation
       await this.page.getByRole('button', { name: /계속/ }).click();
     }
+  }
+
+  /**
+   * 폼 제출 (겹침 다이얼로그 처리 안 함)
+   * 겹침 테스트에서 사용합니다. 다이얼로그는 테스트 코드에서 직접 처리합니다.
+   */
+  async submitForm() {
+    await this.submitButton.click();
   }
 
   /**
@@ -249,5 +258,40 @@ export class EventFormComponent {
       () => (document.querySelector('#title') as HTMLInputElement)?.value === '',
       { timeout: 3000 }
     );
+  }
+
+  /**
+   * 알림 드롭다운 열기
+   * '알림 설정' 레이블 옆의 combobox를 클릭합니다.
+   */
+  async openNotificationDropdown() {
+    await this.page.locator('text=알림 설정').locator('..').getByRole('combobox').click();
+  }
+
+  /**
+   * 알림 옵션 선택
+   * @param option 알림 시간 옵션 ('1분 전', '10분 전', '1시간 전', '1일 전')
+   */
+  async selectNotificationOption(option: '1분 전' | '10분 전' | '1시간 전' | '1일 전') {
+    await this.page.getByRole('option', { name: option }).click();
+  }
+
+  /**
+   * 모든 알림 옵션이 표시되는지 확인
+   */
+  async expectNotificationOptionsVisible() {
+    await expect(this.page.getByRole('option', { name: '1분 전' })).toBeVisible();
+    await expect(this.page.getByRole('option', { name: '10분 전' })).toBeVisible();
+    await expect(this.page.getByRole('option', { name: '1시간 전' })).toBeVisible();
+    await expect(this.page.getByRole('option', { name: '1일 전' })).toBeVisible();
+  }
+
+  /**
+   * 제목 필드 값 확인
+   * 겹침 다이얼로그에서 취소 후 폼 데이터가 유지되는지 확인할 때 사용합니다.
+   * @param expectedValue 예상되는 제목 값
+   */
+  async expectTitleValue(expectedValue: string) {
+    await expect(this.titleInput).toHaveValue(expectedValue);
   }
 }
