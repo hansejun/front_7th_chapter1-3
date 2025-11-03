@@ -37,12 +37,26 @@ export const generateRepeatEvents = (eventData: EventForm): EventForm[] => {
         break;
 
       case 'monthly': {
-        currentDate.setMonth(currentDate.getMonth() + eventData.repeat.interval);
-        currentDate.setDate(originalDay);
+        let year = currentDate.getFullYear();
+        let month = currentDate.getMonth() + eventData.repeat.interval;
 
-        if (currentDate.getDate() !== originalDay) {
-          currentDate.setDate(1);
-          currentDate.setMonth(currentDate.getMonth() + 1);
+        // 월이 12를 넘으면 년도 증가
+        while (month > 11) {
+          year++;
+          month -= 12;
+        }
+
+        currentDate = new Date(year, month, originalDay);
+
+        // 날짜가 오버플로우된 경우 (예: 2월 31일 → 3월 2일이나 3일)
+        // 해당 월에 원하는 날짜가 없으므로 다음 달로 이동
+        while (currentDate.getDate() !== originalDay && currentDate <= endDate) {
+          month++;
+          if (month > 11) {
+            year++;
+            month = 0;
+          }
+          currentDate = new Date(year, month, originalDay);
         }
         break;
       }

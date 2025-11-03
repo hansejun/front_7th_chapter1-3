@@ -32,7 +32,7 @@ const DEFAULT_REPEAT_CONFIG = {
  */
 export const useRecurringEventOperations = (
   events: Event[],
-  updateEvents: (newEvents: Event[]) => void
+  updateEvents: (updatedEvents: Event[]) => void
 ) => {
   const isRecurringEvent = (event: Event): boolean => {
     return event.repeat.type !== 'none' && event.repeat.interval > 0;

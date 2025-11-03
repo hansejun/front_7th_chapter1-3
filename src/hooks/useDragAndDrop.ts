@@ -8,7 +8,7 @@ import { findOverlappingEvents } from '../utils/eventOverlap';
 interface UseDragAndDropProps {
   events: Event[];
   /** Callback fired when an event is successfully dropped on a new date */
-  onDrop: (event: Event, hasOverlap: boolean, overlapping: Event[]) => void;
+  onDrop: (event: Event, hasOverlap: boolean, overlappingEvents: Event[]) => void;
 }
 
 export function useDragAndDrop({ events, onDrop }: UseDragAndDropProps) {
