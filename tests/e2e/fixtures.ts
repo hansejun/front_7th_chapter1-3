@@ -65,8 +65,8 @@ export const test = base.extend<EventFixtures>({
    * });
    * ```
    */
-
-  createdEvents: async (_, use) => {
+  // eslint-disable-next-line no-empty-pattern
+  createdEvents: async ({}, use) => {
     const events: string[] = [];
 
     // Setup: 빈 배열 제공
