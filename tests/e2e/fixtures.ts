@@ -1,18 +1,15 @@
 import { test as base } from '@playwright/test';
 
-import { EventForm } from './pages/EventForm';
-import { EventList } from './pages/EventList';
-import { RecurringEventDialog } from './pages/RecurringEventDialog';
+import { CalendarPage } from './pages/CalendarPage';
 import { cleanupAllEvents } from './utils/database';
+
+const APP_URL = 'http://localhost:5173';
 
 /**
  * 커스텀 Fixtures 타입 정의
  */
 type EventFixtures = {
-  eventForm: EventForm;
-  eventList: EventList;
-  recurringEventDialog: RecurringEventDialog;
-  createdEvents: string[];
+  calendarPage: CalendarPage;
 };
 
 /**
@@ -26,54 +23,30 @@ type EventFixtures = {
  */
 export const test = base.extend<EventFixtures>({
   /**
-   * EventForm Page Object Fixture
-   * 각 테스트마다 새로운 EventForm 인스턴스 제공
-   */
-  eventForm: async ({ page }, use) => {
-    const eventForm = new EventForm(page);
-    await use(eventForm);
-  },
-
-  /**
-   * EventList Page Object Fixture
-   * 각 테스트마다 새로운 EventList 인스턴스 제공
-   */
-  eventList: async ({ page }, use) => {
-    const eventList = new EventList(page);
-    await use(eventList);
-  },
-
-  /**
-   * RecurringEventDialog Page Object Fixture
-   * 각 테스트마다 새로운 RecurringEventDialog 인스턴스 제공
-   */
-  recurringEventDialog: async ({ page }, use) => {
-    const recurringEventDialog = new RecurringEventDialog(page);
-    await use(recurringEventDialog);
-  },
-
-  /**
-   * 생성된 이벤트 자동 추적 및 Cleanup Fixture
+   * CalendarPage Fixture - Composition Pattern
+   * 각 테스트마다 새로운 CalendarPage 인스턴스 제공
    *
-   * 사용법:
+   * CalendarPage는 다음 컴포넌트를 포함합니다:
+   * - eventForm: 이벤트 생성/수정 폼
+   * - eventList: 이벤트 목록
+   * - recurringDialog: 반복 일정 다이얼로그
+   * - calendarView: 캘린더 뷰
+   *
+   * 사용 예시:
    * ```typescript
-   * test('example', async ({ eventForm, createdEvents }) => {
-   *   await eventForm.fillEventForm(data);
-   *   await eventForm.submit();
-   *   createdEvents.push(data.title);  // 추적 등록
-   *   // 테스트 종료 시 자동으로 삭제됨
-   * });
+   * await calendarPage.eventForm.fillEventForm(data);
+   * await calendarPage.eventList.expectEventExists(title);
    * ```
    */
-  // eslint-disable-next-line no-empty-pattern
-  createdEvents: async ({}, use) => {
-    const events: string[] = [];
+  calendarPage: async ({ page }, use) => {
+    // Setup: 페이지 네비게이션 및 초기화
+    await page.goto(APP_URL);
 
-    // Setup: 빈 배열 제공
-    await use(events);
+    const calendarPage = new CalendarPage(page);
 
-    // Teardown: 테스트 종료 후 API를 통한 자동 cleanup
-    // 빠르고 확실한 cleanup을 위해 reset API 사용
+    await use(calendarPage);
+
+    // Teardown: 모든 이벤트 cleanup
     await cleanupAllEvents();
   },
 });

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 /**
  * E2E 테스트: 기본 일정 관리
@@ -13,23 +13,15 @@ import { test, expect } from './fixtures';
  * - 애플리케이션이 http://localhost:5173 에서 실행 중
  * - 백엔드 서버가 http://localhost:3000 에서 실행 중
  * - TEST_ENV=e2e 환경 변수 설정
+ *
+ * 참고:
+ * - app fixture가 자동으로 페이지를 로드하고 cleanup을 수행합니다
+ * - 각 테스트는 독립적으로 실행되며, 테스트 간 상태가 공유되지 않습니다
  */
-
-// 테스트 설정
-const APP_URL = 'http://localhost:5173';
 
 // 테스트 스위트
 test.describe('기본 일정 관리', () => {
-  test.beforeEach(async ({ page }) => {
-    // 애플리케이션으로 이동
-    await page.goto(APP_URL);
-
-    // 페이지 로드 대기
-    await expect(page).toHaveTitle('일정관리 앱으로 학습하는 테스트 코드');
-    await expect(page.getByRole('heading', { name: '일정 추가' })).toBeVisible();
-  });
-
-  test('단일 일정 생성 및 검증', async ({ eventForm, eventList, createdEvents }) => {
+  test('단일 일정 생성 및 검증', async ({ calendarPage }) => {
     // 테스트 격리를 위한 고유 타임스탬프 생성
     const timestamp = Date.now();
     const eventData = {
@@ -44,16 +36,16 @@ test.describe('기본 일정 관리', () => {
     };
 
     // 1. 폼 채우기
-    await eventForm.fillEventForm(eventData);
+    await calendarPage.eventForm.fillEventForm(eventData);
 
     // 2. 폼 제출
-    await eventForm.submit();
+    await calendarPage.eventForm.submit();
 
     // 3. 폼이 초기화되었는지 확인
-    await eventForm.expectFormCleared();
+    await calendarPage.eventForm.expectFormCleared();
 
     // 4. 이벤트가 리스트에 표시되는지 확인
-    await eventList.expectEventDetails({
+    await calendarPage.eventList.expectEventDetails({
       title: eventData.title,
       date: '2025-11-05',
       time: '14:00 - 15:30',
@@ -63,11 +55,10 @@ test.describe('기본 일정 관리', () => {
       notification: '10분 전',
     });
 
-    // 5. Cleanup을 위해 생성된 이벤트 추적 (fixture가 자동으로 삭제)
-    createdEvents.push(eventData.title);
+    // 참고: app fixture가 자동으로 cleanup 수행
   });
 
-  test('일정 수정', async ({ page, eventForm, eventList, createdEvents }) => {
+  test('일정 수정', async ({ page, calendarPage }) => {
     // 1. 수정할 이벤트 생성
     const timestamp = Date.now();
     const originalEvent = {
@@ -81,19 +72,19 @@ test.describe('기본 일정 관리', () => {
       notification: '10분 전',
     };
 
-    await eventForm.fillEventForm(originalEvent);
-    await eventForm.submit();
+    await calendarPage.eventForm.fillEventForm(originalEvent);
+    await calendarPage.eventForm.submit();
     await page.waitForTimeout(1000);
 
     // 2. 이벤트가 생성되었는지 확인
-    await eventList.expectEventExists(originalEvent.title);
+    await calendarPage.eventList.expectEventExists(originalEvent.title);
 
     // 3. 수정 버튼 클릭
-    const editButton = eventList.getEditButton(originalEvent.title);
+    const editButton = calendarPage.eventList.getEditButton(originalEvent.title);
     await editButton.click();
 
     // 4. 폼이 기존 데이터로 채워졌는지 확인
-    await expect(eventForm.titleInput).toHaveValue(originalEvent.title);
+    await expect(calendarPage.eventForm.titleInput).toHaveValue(originalEvent.title);
 
     // 5. 이벤트 수정
     const updatedEvent = {
@@ -103,17 +94,17 @@ test.describe('기본 일정 관리', () => {
       category: '개인',
     };
 
-    await eventForm.titleInput.fill(updatedEvent.title);
-    await eventForm.descriptionInput.fill(updatedEvent.description);
-    await eventForm.locationInput.fill(updatedEvent.location);
-    await eventForm.categorySelect.click();
+    await calendarPage.eventForm.titleInput.fill(updatedEvent.title);
+    await calendarPage.eventForm.descriptionInput.fill(updatedEvent.description);
+    await calendarPage.eventForm.locationInput.fill(updatedEvent.location);
+    await calendarPage.eventForm.categorySelect.click();
     await page.getByRole('option', { name: updatedEvent.category }).click();
 
     // 6. 변경사항 제출
-    await eventForm.submit();
+    await calendarPage.eventForm.submit();
 
     // 7. 수정된 이벤트가 리스트에 표시되는지 확인
-    await eventList.expectEventDetails({
+    await calendarPage.eventList.expectEventDetails({
       title: updatedEvent.title,
       date: '2025-11-06',
       time: '10:00 - 11:00',
@@ -122,11 +113,10 @@ test.describe('기본 일정 관리', () => {
       category: '개인',
     });
 
-    // 8. Cleanup을 위해 수정된 이벤트 추적 (fixture가 자동으로 삭제)
-    createdEvents.push(updatedEvent.title);
+    // 참고: app fixture가 자동으로 cleanup 수행
   });
 
-  test('일정 삭제', async ({ page, eventForm, eventList }) => {
+  test('일정 삭제', async ({ page, calendarPage }) => {
     // 1. 삭제할 이벤트 생성
     const timestamp = Date.now();
     const eventData = {
@@ -139,24 +129,24 @@ test.describe('기본 일정 관리', () => {
       category: '업무',
     };
 
-    await eventForm.fillEventForm(eventData);
-    await eventForm.submit();
+    await calendarPage.eventForm.fillEventForm(eventData);
+    await calendarPage.eventForm.submit();
     await page.waitForTimeout(1000);
 
     // 2. 이벤트가 생성되었는지 확인
-    await eventList.expectEventExists(eventData.title);
+    await calendarPage.eventList.expectEventExists(eventData.title);
 
     // 3. 이벤트 삭제
-    const deleteButton = eventList.getDeleteButton(eventData.title);
+    const deleteButton = calendarPage.eventList.getDeleteButton(eventData.title);
     await deleteButton.click();
 
     // 4. 이벤트가 리스트에서 제거되었는지 확인 (waitForTimeout 대신 명시적 검증)
-    await eventList.expectEventNotExists(eventData.title);
+    await calendarPage.eventList.expectEventNotExists(eventData.title);
 
     // 참고: 삭제가 테스트의 목적이므로 createdEvents에 추가하지 않음
   });
 
-  test('시간 유효성 검증', async ({ page, eventForm, eventList, createdEvents }) => {
+  test('시간 유효성 검증', async ({ page, calendarPage }) => {
     const timestamp = Date.now();
     const invalidEvent = {
       title: `유효성 검증 테스트 ${timestamp}`,
@@ -167,33 +157,28 @@ test.describe('기본 일정 관리', () => {
     };
 
     // 1. 유효하지 않은 시간 범위로 폼 채우기
-    await eventForm.fillEventForm(invalidEvent);
+    await calendarPage.eventForm.fillEventForm(invalidEvent);
 
     // 2. 제출 시도
-    await eventForm.submitButton.click();
+    await calendarPage.eventForm.submitButton.click();
 
     // 3. 에러 메시지가 표시되는지 확인
     await expect(page.getByText('종료 시간은 시작 시간보다 늦어야 합니다.')).toBeVisible();
 
     // 4. 폼이 초기화되지 않았는지 확인 (사용자가 수정할 수 있도록)
-    await expect(eventForm.titleInput).toHaveValue(invalidEvent.title);
+    await expect(calendarPage.eventForm.titleInput).toHaveValue(invalidEvent.title);
 
     // 5. 이벤트가 생성되지 않았는지 확인
-    await eventList.expectEventNotExists(invalidEvent.title);
+    await calendarPage.eventList.expectEventNotExists(invalidEvent.title);
 
     // 6. 시간을 수정하고 정상 동작하는지 확인
-    await eventForm.endTimeInput.fill('17:00');
-    await eventForm.submit();
+    await calendarPage.eventForm.endTimeInput.fill('17:00');
+    await calendarPage.eventForm.submit();
     await page.waitForTimeout(1000);
 
     // 7. 이벤트가 생성되었는지 확인
-    await eventList.expectEventExists(invalidEvent.title);
+    await calendarPage.eventList.expectEventExists(invalidEvent.title);
 
-    // 8. Cleanup을 위해 생성된 이벤트 추적 (fixture가 자동으로 삭제)
-    createdEvents.push(invalidEvent.title);
+    // 참고: app fixture가 자동으로 cleanup 수행
   });
 });
-
-/**
- * FIXME: 일정 삭제 및 시간 유효성 검증에 대한 병렬 테스트 시에 실패
- */
