@@ -2,10 +2,10 @@ import { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 /**
- * 이벤트 폼 Page Object
+ * 이벤트 폼 컴포넌트
  * 이벤트 생성/수정 폼과 관련된 모든 선택자와 액션을 캡슐화합니다.
  */
-export class EventForm {
+export class EventFormComponent {
   constructor(private page: Page) {}
 
   // Form field selectors

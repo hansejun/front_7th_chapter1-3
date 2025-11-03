@@ -1,10 +1,10 @@
 import { Page, expect } from '@playwright/test';
 
 /**
- * 캘린더 뷰 Page Object
+ * 캘린더 뷰 컴포넌트
  * 캘린더 표시와 관련된 모든 선택자와 액션을 캡슐화합니다.
  */
-export class CalendarView {
+export class CalendarViewComponent {
   constructor(private page: Page) {}
 
   /**

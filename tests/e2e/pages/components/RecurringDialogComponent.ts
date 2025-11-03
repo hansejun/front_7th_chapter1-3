@@ -1,7 +1,7 @@
 import { Page, expect } from '@playwright/test';
 
 /**
- * 반복 일정 다이얼로그 Page Object
+ * 반복 일정 다이얼로그 컴포넌트
  * 반복 일정 수정/삭제 시 나타나는 다이얼로그 처리를 캡슐화합니다.
  *
  * 다이얼로그 구조:
@@ -11,7 +11,7 @@ import { Page, expect } from '@playwright/test';
  *   - "아니오": 모든 일정 수정/삭제
  *   - "취소": 작업 취소
  */
-export class RecurringEventDialog {
+export class RecurringDialogComponent {
   constructor(private page: Page) {}
 
   /**

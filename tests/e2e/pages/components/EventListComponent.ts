@@ -1,10 +1,10 @@
 import { Page, expect } from '@playwright/test';
 
 /**
- * 이벤트 리스트 Page Object
+ * 이벤트 리스트 컴포넌트
  * 이벤트 목록과 관련된 모든 선택자와 액션을 캡슐화합니다.
  */
-export class EventList {
+export class EventListComponent {
   constructor(private page: Page) {}
 
   /**
