@@ -5,6 +5,7 @@ import { EventFormComponent } from './components/EventFormComponent';
 import { EventListComponent } from './components/EventListComponent';
 import { OverlapDialogComponent } from './components/OverlapDialogComponent';
 import { RecurringDialogComponent } from './components/RecurringDialogComponent';
+import { SearchComponent } from './components/SearchComponent';
 
 /**
  * Calendar Page Object - Composition Pattern
@@ -19,6 +20,7 @@ import { RecurringDialogComponent } from './components/RecurringDialogComponent'
  * await calendarPage.recurringDialog.clickThisEventOnly();
  * await calendarPage.calendarView.expectEventOnDate(15, title);
  * await calendarPage.overlapDialog.expectVisible();
+ * await calendarPage.search.search('keyword');
  * ```
  *
  * 장점:
@@ -43,11 +45,15 @@ export class CalendarPage {
   /** 캘린더 뷰 컴포넌트 */
   public readonly calendarView: CalendarViewComponent;
 
+  /** 검색 컴포넌트 */
+  public readonly search: SearchComponent;
+
   constructor(private page: Page) {
     this.eventForm = new EventFormComponent(page);
     this.eventList = new EventListComponent(page);
     this.recurringDialog = new RecurringDialogComponent(page);
     this.overlapDialog = new OverlapDialogComponent(page);
     this.calendarView = new CalendarViewComponent(page);
+    this.search = new SearchComponent(page);
   }
 }

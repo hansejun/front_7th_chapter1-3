@@ -132,6 +132,25 @@ export class EventListComponent {
   }
 
   /**
+   * 전체 이벤트 개수를 반환합니다.
+   * Delete 버튼 개수로 이벤트를 카운트합니다.
+   * @returns 이벤트 개수
+   */
+  async getEventCount(): Promise<number> {
+    try {
+      // UI가 렌더링될 때까지 대기
+      await this.page.waitForTimeout(500);
+
+      // Delete 버튼으로 이벤트 카운트 (각 이벤트마다 고유한 Delete 버튼이 있음)
+      const deleteButtons = await this.page.getByRole('button', { name: /delete event/i }).all();
+      return deleteButtons.length;
+    } catch (e) {
+      console.error('Failed to count events:', e);
+      return 0;
+    }
+  }
+
+  /**
    * 모든 이벤트 삭제
    * cleanup이나 beforeEach/afterEach에서 사용합니다.
    */

@@ -294,4 +294,13 @@ export class EventFormComponent {
   async expectTitleValue(expectedValue: string) {
     await expect(this.titleInput).toHaveValue(expectedValue);
   }
+
+  /**
+   * 날짜 필드 값 확인
+   * 날짜 셀 클릭 후 폼이 올바르게 채워졌는지 확인할 때 사용합니다.
+   * @param expectedDate 예상되는 날짜 (YYYY-MM-DD 형식)
+   */
+  async expectDateValue(expectedDate: string) {
+    await expect(this.dateInput).toHaveValue(expectedDate);
+  }
 }
