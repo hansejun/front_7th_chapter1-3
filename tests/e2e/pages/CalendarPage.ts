@@ -3,6 +3,7 @@ import { Page } from '@playwright/test';
 import { CalendarViewComponent } from './components/CalendarViewComponent';
 import { EventFormComponent } from './components/EventFormComponent';
 import { EventListComponent } from './components/EventListComponent';
+import { NotificationComponent } from './components/NotificationComponent';
 import { OverlapDialogComponent } from './components/OverlapDialogComponent';
 import { RecurringDialogComponent } from './components/RecurringDialogComponent';
 import { SearchComponent } from './components/SearchComponent';
@@ -21,6 +22,7 @@ import { SearchComponent } from './components/SearchComponent';
  * await calendarPage.calendarView.expectEventOnDate(15, title);
  * await calendarPage.overlapDialog.expectVisible();
  * await calendarPage.search.search('keyword');
+ * await calendarPage.notification.expectNotificationVisible('알림 메시지');
  * ```
  *
  * 장점:
@@ -48,6 +50,9 @@ export class CalendarPage {
   /** 검색 컴포넌트 */
   public readonly search: SearchComponent;
 
+  /** 알림 컴포넌트 */
+  public readonly notification: NotificationComponent;
+
   constructor(private page: Page) {
     this.eventForm = new EventFormComponent(page);
     this.eventList = new EventListComponent(page);
@@ -55,5 +60,6 @@ export class CalendarPage {
     this.overlapDialog = new OverlapDialogComponent(page);
     this.calendarView = new CalendarViewComponent(page);
     this.search = new SearchComponent(page);
+    this.notification = new NotificationComponent(page);
   }
 }
