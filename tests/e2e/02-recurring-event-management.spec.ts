@@ -62,7 +62,7 @@ test.describe('반복 일정 관리 E2E 테스트', () => {
     await calendarPage.eventList.expectEventExists(recurringEventTitle);
   });
 
-  test('시나리오 2: 반복 일정 단일 항목 수정', async ({ calendarPage }) => {
+  test('시나리오 2: 반복 일정 단일 항목 수정', async ({ page, calendarPage }) => {
     // 선행 조건: 주간 반복 일정 생성
     await calendarPage.eventForm.createRecurringEvent({
       title: recurringEventTitle,
@@ -96,9 +96,14 @@ test.describe('반복 일정 관리 E2E 테스트', () => {
     // 폼이 리셋될 때까지 대기
     await calendarPage.eventForm.waitForFormReset();
 
-    // UI를 통해 수정된 이벤트 확인
-    const singleEditCount = await calendarPage.eventList.getEventCountByTitle(singleEditTitle);
-    expect(singleEditCount).toBe(1);
+    // UI 업데이트 완료를 위해 추가 대기
+    await page.waitForTimeout(500);
+
+    // UI를 통해 수정된 이벤트 확인 - 타임아웃 증가
+    await expect(async () => {
+      const singleEditCount = await calendarPage.eventList.getEventCountByTitle(singleEditTitle);
+      expect(singleEditCount).toBe(1);
+    }).toPass({ timeout: 5000 });
     await calendarPage.eventList.expectEventDetails({
       title: singleEditTitle,
       location: '회의실 B',

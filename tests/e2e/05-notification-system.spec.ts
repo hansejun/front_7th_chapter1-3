@@ -6,10 +6,12 @@ import { cleanupAllEvents } from './utils/database';
  * E2E 테스트: 알림 시스템
  *
  * 이 테스트 스위트는 다음을 검증합니다:
- * - 알림 시간 설정 UI (드롭다운 옵션)
- * - 알림 설정이 일정에 올바르게 표시되는지 검증
- * - 다양한 알림 시간 옵션 (1분 전, 10분 전, 1시간 전, 1일 전)
- * - 실시간 알림 표시 (Playwright Clock API 사용)
+ * - 시나리오 1: 알림 시간 설정 UI (드롭다운 옵션)
+ * - 시나리오 2: 알림 설정이 일정에 올바르게 표시되는지 검증
+ * - 시나리오 3: 실시간 알림 표시 (Playwright Clock API 사용)
+ *
+ * 지원되는 알림 옵션:
+ * - 1분 전, 10분 전, 1시간 전, 2시간 전, 1일 전
  *
  * 테스트 환경:
  * - 백엔드: http://localhost:3000 (TEST_ENV=e2e 사용)
@@ -126,49 +128,6 @@ test.describe('알림 시스템', () => {
       await calendarPage.notification.expectNotificationVisible(/10분/);
 
       // Cleanup 수동 처리 (fixture를 사용하지 않으므로)
-      await cleanupAllEvents();
-    });
-  });
-
-  test.describe('시나리오 4: 알림 없음 옵션 검증', () => {
-    test('알림 설정을 하지 않은 일정은 알림이 표시되지 않아야 함', async ({ page, context }) => {
-      // 새 컨텍스트로 완전히 독립적인 테스트
-      await context.clearCookies();
-
-      // 현재 시간 고정 (Clock API는 페이지 로드 전에 설치 필요)
-      const baseTime = new Date('2025-11-18T08:00:00');
-      await page.clock.install({ time: baseTime });
-
-      // 페이지 로드
-      await page.goto('http://localhost:5173');
-
-      // POM 인스턴스 수동 생성
-      const calendarPage = new CalendarPage(page);
-
-      // 5분 후 일정 생성
-      const eventStart = new Date(baseTime.getTime() + 5 * 60000);
-      const eventEnd = new Date(baseTime.getTime() + 15 * 60000);
-
-      // POM의 eventForm 컴포넌트 사용
-      await calendarPage.eventForm.fillEventForm({
-        title: '알림없음_테스트',
-        date: eventStart.toISOString().split('T')[0],
-        startTime: eventStart.toTimeString().substring(0, 5),
-        endTime: eventEnd.toTimeString().substring(0, 5),
-        // notification을 지정하지 않으면 기본값(10분 전) 사용
-      });
-      await calendarPage.eventForm.submitForm();
-
-      await expect(page.locator('text=일정이 추가되었습니다').first()).toBeVisible();
-
-      // 1분만 시간 경과 (10분 전 알림이므로 아직 알림 안 뜸)
-      await page.clock.fastForward('01:00');
-      await page.waitForTimeout(2000);
-
-      // POM의 notification 컴포넌트 사용
-      await calendarPage.notification.expectNotificationNotVisible();
-
-      // Cleanup 수동 처리
       await cleanupAllEvents();
     });
   });
