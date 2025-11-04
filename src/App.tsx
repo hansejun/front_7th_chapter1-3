@@ -21,11 +21,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -44,11 +39,12 @@ import {
   Typography,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { DraggableEvent } from './components/DraggableEvent.tsx';
-import { DroppableDateCell } from './components/DroppableDateCell.tsx';
-import RecurringEventDialog from './components/RecurringEventDialog.tsx';
+import { DraggableEvent } from './components/DraggableEvent/DraggableEvent.tsx';
+import { DroppableDateCell } from './components/DroppableDateCell/DroppableDateCell.tsx';
+import OverlapWarningDialog from './components/OverlapWarningDialog/OverlapWarningDialog.tsx';
+import RecurringEventDialog from './components/RecurringEventDialog/RecurringEventDialog.tsx';
 import { useCalendarView } from './hooks/useCalendarView.ts';
 import { useDragAndDrop } from './hooks/useDragAndDrop.ts';
 import { useEventForm } from './hooks/useEventForm.ts';
@@ -761,71 +757,46 @@ function App() {
         </Stack>
       </Stack>
 
-      <Dialog
+      <OverlapWarningDialog
         open={isOverlapDialogOpen}
         onClose={() => {
           setIsOverlapDialogOpen(false);
           setPendingDragUpdate(null);
         }}
-      >
-        <DialogTitle>일정 겹침 경고</DialogTitle>
-        <DialogContent>
-          <DialogContentText>다음 일정과 겹칩니다:</DialogContentText>
-          {overlappingEvents.map((event) => (
-            <Typography key={event.id} sx={{ ml: 1, mb: 1 }}>
-              {event.title} ({event.date} {event.startTime}-{event.endTime})
-            </Typography>
-          ))}
-          <DialogContentText>계속 진행하시겠습니까?</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setIsOverlapDialogOpen(false);
+        onConfirm={async () => {
+          setIsOverlapDialogOpen(false);
+          try {
+            if (pendingDragUpdate) {
+              // 드래그 앤 드롭으로 인한 겹침
+              await saveEvent(pendingDragUpdate);
               setPendingDragUpdate(null);
-            }}
-          >
-            취소
-          </Button>
-          <Button
-            color="error"
-            onClick={async () => {
-              setIsOverlapDialogOpen(false);
-              try {
-                if (pendingDragUpdate) {
-                  // 드래그 앤 드롭으로 인한 겹침
-                  await saveEvent(pendingDragUpdate);
-                  setPendingDragUpdate(null);
-                  enqueueSnackbar('일정이 수정되었습니다', { variant: 'success' });
-                } else {
-                  // 일반 폼 저장으로 인한 겹침
-                  await saveEvent({
-                    id: editingEvent ? editingEvent.id : undefined,
-                    title,
-                    date,
-                    startTime,
-                    endTime,
-                    description,
-                    location,
-                    category,
-                    repeat: {
-                      type: isRepeating ? repeatType : 'none',
-                      interval: repeatInterval,
-                      endDate: repeatEndDate || undefined,
-                    },
-                    notificationTime,
-                  });
-                }
-              } catch (error) {
-                console.error(error);
-                enqueueSnackbar('일정 수정 실패', { variant: 'error' });
-              }
-            }}
-          >
-            계속
-          </Button>
-        </DialogActions>
-      </Dialog>
+              enqueueSnackbar('일정이 수정되었습니다', { variant: 'success' });
+            } else {
+              // 일반 폼 저장으로 인한 겹침
+              await saveEvent({
+                id: editingEvent ? editingEvent.id : undefined,
+                title,
+                date,
+                startTime,
+                endTime,
+                description,
+                location,
+                category,
+                repeat: {
+                  type: isRepeating ? repeatType : 'none',
+                  interval: repeatInterval,
+                  endDate: repeatEndDate || undefined,
+                },
+                notificationTime,
+              });
+            }
+          } catch (error) {
+            console.error(error);
+            enqueueSnackbar('일정 수정 실패', { variant: 'error' });
+          }
+        }}
+        overlappingEvents={overlappingEvents}
+      />
 
       <RecurringEventDialog
         open={isRecurringDialogOpen}

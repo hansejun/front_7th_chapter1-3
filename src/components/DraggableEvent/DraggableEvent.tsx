@@ -2,9 +2,9 @@ import { useDraggable } from '@dnd-kit/core';
 import { Notifications, Repeat } from '@mui/icons-material';
 import { Box, Stack, Tooltip, Typography } from '@mui/material';
 
-import { Event } from '../types';
-import { isDraggable } from '../utils/dragAndDropUtils';
-import { getRepeatTypeLabel } from '../utils/repeatTypeUtils';
+import { Event } from '../../types';
+import { isDraggable } from '../../utils/dragAndDropUtils';
+import { getRepeatTypeLabel } from '../../utils/repeatTypeUtils';
 
 // 스타일 상수
 const eventBoxStyles = {
