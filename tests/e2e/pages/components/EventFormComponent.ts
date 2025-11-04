@@ -150,6 +150,12 @@ export class EventFormComponent {
     await this.repeatTypeSelect.click();
     // MUI Select의 드롭다운 메뉴가 포털로 렌더링되므로 filter 사용
     await this.page.getByRole('option').filter({ hasText: repeatType }).click();
+    // 드롭다운 메뉴가 완전히 닫힐 때까지 대기 (CSS 애니메이션 완료)
+    await this.page
+      .waitForSelector('[role="listbox"]', { state: 'hidden', timeout: 2000 })
+      .catch(() => {
+        // 드롭다운이 이미 닫혔을 수 있으므로 에러 무시
+      });
   }
 
   /**
