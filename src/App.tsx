@@ -218,34 +218,40 @@ function App() {
           onSubmit={addOrUpdateEvent}
         />
 
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
-        >
-          <Typography variant="h4">일정 보기</Typography>
+        <Stack flex={1} spacing={5}>
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <Typography variant="h4">일정 보기</Typography>
 
-          <CalendarViewControl
-            view={view}
-            onPrevClick={() => navigate('prev')}
-            onNextClick={() => navigate('next')}
-            onViewChange={setView}
-          />
-          <CalendarView
-            currentDate={currentDate}
-            view={view}
-            events={filteredEvents}
-            notifiedEvents={notifiedEvents}
-            holidays={holidays}
-            onDateClick={handleCalendarDateClick}
-          />
-          <DragOverlay>
-            {activeEvent ? (
-              <DraggableEvent event={activeEvent} overlay={true} notifiedEvents={notifiedEvents} />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            <CalendarViewControl
+              view={view}
+              onPrevClick={() => navigate('prev')}
+              onNextClick={() => navigate('next')}
+              onViewChange={setView}
+            />
+            <CalendarView
+              currentDate={currentDate}
+              view={view}
+              events={filteredEvents}
+              notifiedEvents={notifiedEvents}
+              holidays={holidays}
+              onDateClick={handleCalendarDateClick}
+            />
+            <DragOverlay>
+              {activeEvent ? (
+                <DraggableEvent
+                  event={activeEvent}
+                  overlay={true}
+                  notifiedEvents={notifiedEvents}
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </Stack>
 
         <Stack
           data-testid="event-list"
