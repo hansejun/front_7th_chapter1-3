@@ -56,7 +56,7 @@ export const EventForm: FC<EventFormProps> = ({
   const isRepeating = formData.repeat.type !== 'none';
 
   return (
-    <Stack spacing={2} sx={{ width: '20%' }}>
+    <Stack spacing={2}>
       <Typography variant="h4">{isEditMode ? '일정 수정' : '일정 추가'}</Typography>
 
       <FormControl fullWidth>

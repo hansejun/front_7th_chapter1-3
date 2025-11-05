@@ -209,14 +209,16 @@ function App() {
   return (
     <Box sx={{ width: '100%', height: '100vh', margin: 'auto', p: 5 }}>
       <Stack direction="row" spacing={6} sx={{ height: '100%' }}>
-        <EventForm
-          formData={formData}
-          isEditMode={!!editingEvent}
-          startTimeError={startTimeError || undefined}
-          endTimeError={endTimeError || undefined}
-          onFieldChange={onFieldChange}
-          onSubmit={addOrUpdateEvent}
-        />
+        <Stack sx={{ width: '20%' }}>
+          <EventForm
+            formData={formData}
+            isEditMode={!!editingEvent}
+            startTimeError={startTimeError || undefined}
+            endTimeError={endTimeError || undefined}
+            onFieldChange={onFieldChange}
+            onSubmit={addOrUpdateEvent}
+          />
+        </Stack>
 
         <Stack flex={1} spacing={5}>
           <DndContext
