@@ -78,7 +78,7 @@ export const CalendarView: FC<CalendarViewProps> = ({
     const weekDates = getWeekDates(currentDate);
     return (
       <Stack data-testid="week-view" spacing={4} sx={{ width: '100%' }}>
-        <Typography variant="h5">{formatWeek(currentDate)}</Typography>
+        <Typography variant="h3">{formatWeek(currentDate)}</Typography>
         <TableContainer>
           <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
             <TableHead>
