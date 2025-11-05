@@ -122,11 +122,13 @@ export const useEventForm = ({
       case 'startTime': {
         const newStartTime = value as string;
         setStartTime(newStartTime);
+        setTimeError(getTimeErrorMessage(newStartTime, endTime));
         break;
       }
       case 'endTime': {
         const newEndTime = value as string;
         setEndTime(newEndTime);
+        setTimeError(getTimeErrorMessage(startTime, newEndTime));
         break;
       }
       case 'description':
