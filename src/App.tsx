@@ -6,15 +6,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Close,
-  Delete,
-  Edit,
-  Notifications,
-  Repeat,
-} from '@mui/icons-material';
+import { Close, Delete, Edit, Notifications, Repeat } from '@mui/icons-material';
 import {
   Alert,
   AlertTitle,
@@ -22,15 +14,7 @@ import {
   FormControl,
   FormLabel,
   IconButton,
-  MenuItem,
-  Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -38,8 +22,9 @@ import {
 import { useSnackbar } from 'notistack';
 import { useState } from 'react';
 
+import { CalendarView } from './components/CalendarView/CalendarView.tsx';
+import { CalendarViewControl } from './components/CalendarView/CalendarViewControl.tsx';
 import { DraggableEvent } from './components/DraggableEvent/DraggableEvent.tsx';
-import { DroppableDateCell } from './components/DroppableDateCell/DroppableDateCell.tsx';
 import { EventForm } from './components/EventForm/EventForm.tsx';
 import OverlapWarningDialog from './components/OverlapWarningDialog/OverlapWarningDialog.tsx';
 import RecurringEventDialog from './components/RecurringEventDialog/RecurringEventDialog.tsx';
@@ -51,16 +36,7 @@ import { useNotifications } from './hooks/useNotifications.ts';
 import { useRecurringEventOperations } from './hooks/useRecurringEventOperations.ts';
 import { useSearch } from './hooks/useSearch.ts';
 import { Event } from './types.ts';
-import {
-  formatDate,
-  formatMonth,
-  formatWeek,
-  getEventsForDay,
-  getWeekDates,
-  getWeeksAtMonth,
-} from './utils/dateUtils.ts';
 import { getRepeatTypeLabel } from './utils/repeatTypeUtils.ts';
-const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
 const notificationOptions = [
   { value: 1, label: '1분 전' },
@@ -69,23 +45,6 @@ const notificationOptions = [
   { value: 120, label: '2시간 전' },
   { value: 1440, label: '1일 전' },
 ];
-
-// TableCell 스타일 상수
-const tableCellStyles = {
-  header: {
-    width: '14.28%',
-    padding: 1,
-    textAlign: 'center' as const,
-  },
-  data: {
-    height: '120px',
-    verticalAlign: 'top' as const,
-    width: '14.28%',
-    padding: 1,
-    border: '1px solid #e0e0e0',
-    overflow: 'hidden',
-  },
-};
 
 function App() {
   const [isOverlapDialogOpen, setIsOverlapDialogOpen] = useState(false);
@@ -182,11 +141,6 @@ function App() {
     onDrop: handleDrop,
   });
 
-  // 날짜 클릭 핸들러
-  const handleDateClick = (dateString: string) => {
-    onFieldChange('date', dateString);
-  };
-
   const handleRecurringConfirm = async (editSingleOnly: boolean) => {
     if (recurringDialogMode === 'edit' && pendingRecurringEdit) {
       // 편집 모드 저장하고 편집 폼으로 이동
@@ -244,115 +198,12 @@ function App() {
     }
   };
 
-  const renderWeekView = () => {
-    const weekDates = getWeekDates(currentDate);
-    return (
-      <Stack data-testid="week-view" spacing={4} sx={{ width: '100%' }}>
-        <Typography variant="h5">{formatWeek(currentDate)}</Typography>
-        <TableContainer>
-          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
-            <TableHead>
-              <TableRow>
-                {weekDays.map((day) => (
-                  <TableCell key={day} sx={tableCellStyles.header}>
-                    {day}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                {weekDates.map((date) => {
-                  const day = date.getDate();
-                  const dateString = formatDate(date);
-
-                  return (
-                    <TableCell key={date.toISOString()} sx={tableCellStyles.data}>
-                      <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {day}
-                        </Typography>
-                        {filteredEvents
-                          .filter(
-                            (event) => new Date(event.date).toDateString() === date.toDateString()
-                          )
-                          .map((event) => (
-                            <DraggableEvent
-                              key={event.id}
-                              event={event}
-                              notifiedEvents={notifiedEvents}
-                            />
-                          ))}
-                      </DroppableDateCell>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Stack>
-    );
-  };
-
-  const renderMonthView = () => {
-    const weeks = getWeeksAtMonth(currentDate);
-
-    return (
-      <Stack data-testid="month-view" spacing={4} sx={{ width: '100%' }}>
-        <Typography variant="h5">{formatMonth(currentDate)}</Typography>
-        <TableContainer>
-          <Table sx={{ tableLayout: 'fixed', width: '100%' }}>
-            <TableHead>
-              <TableRow>
-                {weekDays.map((day) => (
-                  <TableCell key={day} sx={tableCellStyles.header}>
-                    {day}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {weeks.map((week, weekIndex) => (
-                <TableRow key={weekIndex}>
-                  {week.map((day, dayIndex) => {
-                    const dateString = day ? formatDate(currentDate, day) : '';
-                    const holiday = holidays[dateString];
-
-                    return (
-                      <TableCell
-                        key={dayIndex}
-                        sx={{ ...tableCellStyles.data, position: 'relative' }}
-                      >
-                        {day && (
-                          <DroppableDateCell dateString={dateString} onCellClick={handleDateClick}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {day}
-                            </Typography>
-                            {holiday && (
-                              <Typography variant="body2" color="error">
-                                {holiday}
-                              </Typography>
-                            )}
-                            {getEventsForDay(filteredEvents, day).map((event) => (
-                              <DraggableEvent
-                                key={event.id}
-                                event={event}
-                                notifiedEvents={notifiedEvents}
-                              />
-                            ))}
-                          </DroppableDateCell>
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Stack>
-    );
+  const handleCalendarDateClick = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    onFieldChange('date', dateString);
   };
 
   return (
@@ -367,50 +218,34 @@ function App() {
           onSubmit={addOrUpdateEvent}
         />
 
-        <Stack flex={1} spacing={5}>
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
           <Typography variant="h4">일정 보기</Typography>
 
-          <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center">
-            <IconButton aria-label="Previous" onClick={() => navigate('prev')}>
-              <ChevronLeft />
-            </IconButton>
-            <Select
-              size="small"
-              aria-label="뷰 타입 선택"
-              value={view}
-              onChange={(e) => setView(e.target.value as 'week' | 'month')}
-            >
-              <MenuItem value="week" aria-label="week-option">
-                Week
-              </MenuItem>
-              <MenuItem value="month" aria-label="month-option">
-                Month
-              </MenuItem>
-            </Select>
-            <IconButton aria-label="Next" onClick={() => navigate('next')}>
-              <ChevronRight />
-            </IconButton>
-          </Stack>
-
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            {view === 'week' && renderWeekView()}
-            {view === 'month' && renderMonthView()}
-            <DragOverlay>
-              {activeEvent ? (
-                <DraggableEvent
-                  event={activeEvent}
-                  overlay={true}
-                  notifiedEvents={notifiedEvents}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </Stack>
+          <CalendarViewControl
+            view={view}
+            onPrevClick={() => navigate('prev')}
+            onNextClick={() => navigate('next')}
+            onViewChange={setView}
+          />
+          <CalendarView
+            currentDate={currentDate}
+            view={view}
+            events={filteredEvents}
+            notifiedEvents={notifiedEvents}
+            holidays={holidays}
+            onDateClick={handleCalendarDateClick}
+          />
+          <DragOverlay>
+            {activeEvent ? (
+              <DraggableEvent event={activeEvent} overlay={true} notifiedEvents={notifiedEvents} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
 
         <Stack
           data-testid="event-list"

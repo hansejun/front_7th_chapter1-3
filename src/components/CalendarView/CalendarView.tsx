@@ -1,8 +1,4 @@
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import {
-  Box,
-  Button,
-  IconButton,
   Stack,
   Table,
   TableBody,
@@ -12,7 +8,6 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import React, { FC } from 'react';
 
 import { Event } from '../../types';
 import {
@@ -57,17 +52,14 @@ export interface CalendarViewProps {
   onViewChange?: (view: 'week' | 'month') => void;
 }
 
-export const CalendarView: FC<CalendarViewProps> = ({
+export const CalendarView = ({
   currentDate,
   view,
   events,
   notifiedEvents,
   holidays = {},
   onDateClick,
-  onPrevClick,
-  onNextClick,
-  onViewChange,
-}) => {
+}: CalendarViewProps) => {
   const handleDateClick = (dateString: string) => {
     if (onDateClick) {
       onDateClick(new Date(dateString));
@@ -185,29 +177,5 @@ export const CalendarView: FC<CalendarViewProps> = ({
     );
   };
 
-  return (
-    <Box sx={{ width: '100%' }}>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <IconButton onClick={onPrevClick} data-testid="prev-button">
-          <ChevronLeft />
-        </IconButton>
-        <Button
-          variant={view === 'week' ? 'contained' : 'outlined'}
-          onClick={() => onViewChange?.('week')}
-        >
-          Week
-        </Button>
-        <Button
-          variant={view === 'month' ? 'contained' : 'outlined'}
-          onClick={() => onViewChange?.('month')}
-        >
-          Month
-        </Button>
-        <IconButton onClick={onNextClick} data-testid="next-button">
-          <ChevronRight />
-        </IconButton>
-      </Stack>
-      {view === 'week' ? renderWeekView() : renderMonthView()}
-    </Box>
-  );
+  return view === 'week' ? renderWeekView() : renderMonthView();
 };
