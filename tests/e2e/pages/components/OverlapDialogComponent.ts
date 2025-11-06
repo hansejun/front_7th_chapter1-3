@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Locator, Page, expect } from '@playwright/test';
 
 /**
  * 일정 겹침 다이얼로그 컴포넌트
@@ -10,28 +10,28 @@ export class OverlapDialogComponent {
   /**
    * 겹침 다이얼로그 가져오기
    */
-  get dialog() {
+  get dialog(): Locator {
     return this.page.getByRole('dialog').filter({ hasText: '일정 겹침' });
   }
 
   /**
    * 취소 버튼
    */
-  get cancelButton() {
+  get cancelButton(): Locator {
     return this.page.getByRole('button', { name: '취소' });
   }
 
   /**
    * 계속 버튼
    */
-  get continueButton() {
+  get continueButton(): Locator {
     return this.page.getByRole('button', { name: '계속' });
   }
 
   /**
    * 다이얼로그가 표시되는지 확인
    */
-  async expectVisible() {
+  async expectVisible(): Promise<void> {
     await expect(this.dialog).toBeVisible();
   }
 
@@ -40,7 +40,7 @@ export class OverlapDialogComponent {
    * @param eventTitle 이벤트 제목
    * @param timeRange 시간 범위 (예: "14:00-16:00")
    */
-  async expectEventInDialog(eventTitle: string, timeRange: string) {
+  async expectEventInDialog(eventTitle: string, timeRange: string): Promise<void> {
     await expect(this.dialog).toContainText(eventTitle);
     await expect(this.dialog).toContainText(timeRange);
   }
@@ -48,21 +48,21 @@ export class OverlapDialogComponent {
   /**
    * 취소 버튼 클릭
    */
-  async clickCancel() {
+  async clickCancel(): Promise<void> {
     await this.cancelButton.click();
   }
 
   /**
    * 계속 버튼 클릭
    */
-  async clickContinue() {
+  async clickContinue(): Promise<void> {
     await this.continueButton.click();
   }
 
   /**
    * 다이얼로그가 닫혔는지 확인
    */
-  async expectNotVisible() {
+  async expectNotVisible(): Promise<void> {
     await expect(this.dialog).not.toBeVisible();
   }
 }

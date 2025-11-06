@@ -1,4 +1,6 @@
-import { Page, expect } from '@playwright/test';
+import { Locator, Page, expect } from '@playwright/test';
+
+import { TIMEOUTS } from '../../constants';
 
 /**
  * 캘린더 뷰 컴포넌트
@@ -17,35 +19,35 @@ export class CalendarViewComponent {
    * 뷰 선택 콤보박스 (Month/Week)
    * 현재 표시된 텍스트(Month 또는 Week)로 선택자를 찾습니다
    */
-  getViewSelector(currentView: 'Month' | 'Week') {
+  getViewSelector(currentView: 'Month' | 'Week'): Locator {
     return this.page.getByRole('combobox').filter({ hasText: currentView });
   }
 
   /**
    * 이전 달/주 버튼
    */
-  get previousButton() {
+  get previousButton(): Locator {
     return this.page.getByRole('button', { name: 'Previous' });
   }
 
   /**
    * 다음 달/주 버튼
    */
-  get nextButton() {
+  get nextButton(): Locator {
     return this.page.getByRole('button', { name: 'Next' });
   }
 
   /**
    * 날짜로 캘린더 셀 가져오기
    */
-  getDateCell(day: number) {
+  getDateCell(day: number): Locator {
     return this.page.locator(`td p`).filter({ hasText: new RegExp(`^${day}$`) });
   }
 
   /**
    * 월 헤딩 가져오기 (예: "2025년 11월")
    */
-  getMonthHeading(yearMonth: string) {
+  getMonthHeading(yearMonth: string): Locator {
     return this.page.getByRole('heading', { name: new RegExp(yearMonth, 'i'), level: 5 });
   }
 
@@ -54,35 +56,43 @@ export class CalendarViewComponent {
   /**
    * 주간 뷰로 전환합니다.
    */
-  async switchToWeekView() {
+  async switchToWeekView(): Promise<void> {
     // 현재 Month 뷰인 combobox를 찾아 클릭
     const viewSelector = this.getViewSelector('Month');
     await viewSelector.click();
-    await this.page.waitForTimeout(300);
 
     // 드롭다운에서 Week 옵션 클릭
     await this.page.getByRole('option', { name: 'week-option' }).click();
-    await this.page.waitForTimeout(500);
+
+    // 드롭다운이 닫히고 뷰가 전환될 때까지 대기
+    await this.page.waitForSelector('[role="listbox"]', {
+      state: 'hidden',
+      timeout: TIMEOUTS.DROPDOWN_CLOSE,
+    });
   }
 
   /**
    * 월간 뷰로 전환합니다.
    */
-  async switchToMonthView() {
+  async switchToMonthView(): Promise<void> {
     // 현재 Week 뷰인 combobox를 찾아 클릭
     const viewSelector = this.getViewSelector('Week');
     await viewSelector.click();
-    await this.page.waitForTimeout(300);
 
     // 드롭다운에서 Month 옵션 클릭
     await this.page.getByRole('option', { name: 'month-option' }).click();
-    await this.page.waitForTimeout(500);
+
+    // 드롭다운이 닫히고 뷰가 전환될 때까지 대기
+    await this.page.waitForSelector('[role="listbox"]', {
+      state: 'hidden',
+      timeout: TIMEOUTS.DROPDOWN_CLOSE,
+    });
   }
 
   /**
    * 현재 뷰가 월간 뷰인지 확인합니다.
    */
-  async expectMonthView() {
+  async expectMonthView(): Promise<void> {
     const monthSelector = this.page.getByRole('combobox').filter({ hasText: 'Month' }).first();
     await expect(monthSelector).toBeVisible();
   }
@@ -90,7 +100,7 @@ export class CalendarViewComponent {
   /**
    * 현재 뷰가 주간 뷰인지 확인합니다.
    */
-  async expectWeekView() {
+  async expectWeekView(): Promise<void> {
     const weekSelector = this.page.getByRole('combobox').filter({ hasText: 'Week' }).first();
     await expect(weekSelector).toBeVisible();
   }
@@ -100,24 +110,26 @@ export class CalendarViewComponent {
   /**
    * 다음 달/주로 이동합니다.
    */
-  async clickNextButton() {
+  async clickNextButton(): Promise<void> {
     await this.nextButton.click();
-    await this.page.waitForTimeout(500);
+    // 캘린더 업데이트가 완료될 때까지 대기
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
    * 이전 달/주로 이동합니다.
    */
-  async clickPreviousButton() {
+  async clickPreviousButton(): Promise<void> {
     await this.previousButton.click();
-    await this.page.waitForTimeout(500);
+    // 캘린더 업데이트가 완료될 때까지 대기
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
    * 월 헤딩이 표시되는지 확인합니다.
    * @param yearMonth 예: "2025년 11월"
    */
-  async expectMonthHeading(yearMonth: string) {
+  async expectMonthHeading(yearMonth: string): Promise<void> {
     const heading = this.getMonthHeading(yearMonth);
     await expect(heading).toBeVisible();
   }
@@ -129,7 +141,7 @@ export class CalendarViewComponent {
    * 현재 표시된 월의 날짜를 클릭합니다.
    * @param day 날짜 (1-31)
    */
-  async clickDateCell(day: number) {
+  async clickDateCell(day: number): Promise<void> {
     // 현재 월의 연도와 월을 가져오기
     const heading = await this.page.getByRole('heading', { level: 5 }).first().textContent();
     if (!heading) {
@@ -151,9 +163,11 @@ export class CalendarViewComponent {
     const dateCell = this.page.locator(`[data-date="${dateString}"]`);
 
     // 날짜 셀이 존재하고 클릭 가능한지 확인
-    await dateCell.waitFor({ state: 'visible', timeout: 5000 });
+    await dateCell.waitFor({ state: 'visible', timeout: TIMEOUTS.MEDIUM });
     await dateCell.click();
-    await this.page.waitForTimeout(500);
+
+    // 폼이 업데이트될 때까지 대기
+    await this.page.waitForLoadState('networkidle');
   }
 
   // ==================== 이벤트 표시 확인 메서드 ====================
@@ -161,19 +175,19 @@ export class CalendarViewComponent {
   /**
    * 특정 날짜에 이벤트가 표시되는지 확인
    */
-  async expectEventOnDate(day: number, title: string) {
+  async expectEventOnDate(day: number, title: string): Promise<void> {
     const dateCell = this.getDateCell(day);
     await expect(dateCell).toBeVisible();
 
     // Check if the event title appears near this date
     const parentCell = dateCell.locator('..');
-    await expect(parentCell.locator(`text="${title}"`)).toBeVisible({ timeout: 5000 });
+    await expect(parentCell.locator(`text="${title}"`)).toBeVisible({ timeout: TIMEOUTS.MEDIUM });
   }
 
   /**
    * 특정 날짜에 이벤트가 표시되지 않는지 확인
    */
-  async expectEventNotOnDate(day: number, title: string) {
+  async expectEventNotOnDate(day: number, title: string): Promise<void> {
     const dateCell = this.getDateCell(day);
     const parentCell = dateCell.locator('..');
     await expect(parentCell.locator(`text="${title}"`)).not.toBeVisible();

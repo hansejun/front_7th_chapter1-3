@@ -1,5 +1,32 @@
-import { Page } from '@playwright/test';
-import { expect } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+
+import { NotificationOption, RepeatType, TIMEOUTS } from '../../constants';
+
+/**
+ * 기본 이벤트 데이터 인터페이스
+ * fillEventForm 메서드에서 사용
+ */
+interface BasicEventData {
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  description?: string;
+  location?: string;
+  category?: string;
+  notification?: string;
+}
+
+/**
+ * 반복 이벤트 데이터 인터페이스
+ * fillRecurringEventForm 메서드에서 사용
+ */
+interface RecurringEventData extends BasicEventData {
+  repeatType: RepeatType;
+  repeatInterval?: number;
+  repeatEndDate: string;
+  notificationTime?: string;
+}
 
 /**
  * 이벤트 폼 컴포넌트
@@ -63,18 +90,26 @@ export class EventFormComponent {
   }
 
   /**
+   * 드롭다운 옵션 선택 공통 메서드
+   * @param trigger 드롭다운을 열 요소 (combobox)
+   * @param optionText 선택할 옵션 텍스트
+   * @private
+   */
+  private async selectOption(trigger: Locator, optionText: string): Promise<void> {
+    await trigger.click();
+    await this.page.getByRole('option').filter({ hasText: optionText }).click();
+    // 드롭다운이 닫힐 때까지 대기
+    await this.page
+      .waitForSelector('[role="listbox"]', { state: 'hidden', timeout: TIMEOUTS.DROPDOWN_CLOSE })
+      .catch(() => {
+        // 드롭다운이 이미 닫혔을 수 있으므로 에러 무시
+      });
+  }
+
+  /**
    * 이벤트 폼 작성
    */
-  async fillEventForm(eventData: {
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    description?: string;
-    location?: string;
-    category?: string;
-    notification?: string;
-  }) {
+  async fillEventForm(eventData: BasicEventData): Promise<void> {
     await this.titleInput.fill(eventData.title);
     await this.dateInput.fill(eventData.date);
     await this.startTimeInput.fill(eventData.startTime);
@@ -89,13 +124,11 @@ export class EventFormComponent {
     }
 
     if (eventData.category) {
-      await this.categorySelect.click();
-      await this.page.getByRole('option').filter({ hasText: eventData.category }).click();
+      await this.selectOption(this.categorySelect, eventData.category);
     }
 
     if (eventData.notification) {
-      await this.notificationSelect.click();
-      await this.page.getByRole('option').filter({ hasText: eventData.notification }).click();
+      await this.selectOption(this.notificationSelect, eventData.notification);
     }
   }
 
@@ -136,33 +169,25 @@ export class EventFormComponent {
   /**
    * 반복 일정 체크박스를 활성화합니다.
    */
-  async enableRecurring() {
+  async enableRecurring(): Promise<void> {
     await this.repeatCheckbox.check();
     // 반복 옵션이 나타날 때까지 대기
-    await this.repeatTypeSelect.waitFor({ state: 'visible', timeout: 2000 });
+    await this.repeatTypeSelect.waitFor({ state: 'visible', timeout: TIMEOUTS.SHORT });
   }
 
   /**
    * 반복 유형을 선택합니다.
-   * @param repeatType '매일' | '매주' | '매월' | '매년'
+   * @param repeatType RepeatType ('매일' | '매주' | '매월' | '매년')
    */
-  async selectRepeatType(repeatType: '매일' | '매주' | '매월' | '매년') {
-    await this.repeatTypeSelect.click();
-    // MUI Select의 드롭다운 메뉴가 포털로 렌더링되므로 filter 사용
-    await this.page.getByRole('option').filter({ hasText: repeatType }).click();
-    // 드롭다운 메뉴가 완전히 닫힐 때까지 대기 (CSS 애니메이션 완료)
-    await this.page
-      .waitForSelector('[role="listbox"]', { state: 'hidden', timeout: 2000 })
-      .catch(() => {
-        // 드롭다운이 이미 닫혔을 수 있으므로 에러 무시
-      });
+  async selectRepeatType(repeatType: RepeatType): Promise<void> {
+    await this.selectOption(this.repeatTypeSelect, repeatType);
   }
 
   /**
    * 반복 간격을 설정합니다.
    * @param interval 반복 간격 (예: 1, 2, 3)
    */
-  async setRepeatInterval(interval: number) {
+  async setRepeatInterval(interval: number): Promise<void> {
     await this.repeatIntervalInput.fill(String(interval));
   }
 
@@ -170,45 +195,26 @@ export class EventFormComponent {
    * 반복 종료일을 설정합니다.
    * @param endDate 종료일 (YYYY-MM-DD 형식)
    */
-  async setRepeatEndDate(endDate: string) {
+  async setRepeatEndDate(endDate: string): Promise<void> {
     await this.repeatEndDateInput.fill(endDate);
   }
 
   /**
    * 반복 일정 폼을 작성합니다.
-   * fillEventForm()과 동일하지만 반복 설정을 추가로 받습니다.
+   * fillEventForm()을 재사용하고 반복 설정을 추가합니다.
    */
-  async fillRecurringEventForm(eventData: {
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    description?: string;
-    location?: string;
-    category?: string;
-    repeatType: '매일' | '매주' | '매월' | '매년';
-    repeatInterval?: number;
-    repeatEndDate: string;
-    notificationTime?: string;
-  }) {
-    // 기본 필드 작성
-    await this.titleInput.fill(eventData.title);
-    await this.dateInput.fill(eventData.date);
-    await this.startTimeInput.fill(eventData.startTime);
-    await this.endTimeInput.fill(eventData.endTime);
-
-    if (eventData.description) {
-      await this.descriptionInput.fill(eventData.description);
-    }
-
-    if (eventData.location) {
-      await this.locationInput.fill(eventData.location);
-    }
-
-    if (eventData.category) {
-      await this.categorySelect.click();
-      await this.page.getByRole('option').filter({ hasText: eventData.category }).click();
-    }
+  async fillRecurringEventForm(eventData: RecurringEventData): Promise<void> {
+    // 기본 필드는 fillEventForm 재사용
+    await this.fillEventForm({
+      title: eventData.title,
+      date: eventData.date,
+      startTime: eventData.startTime,
+      endTime: eventData.endTime,
+      description: eventData.description,
+      location: eventData.location,
+      category: eventData.category,
+      notification: eventData.notificationTime,
+    });
 
     // 반복 일정 활성화
     await this.enableRecurring();
@@ -223,46 +229,28 @@ export class EventFormComponent {
 
     // 반복 종료일 설정
     await this.setRepeatEndDate(eventData.repeatEndDate);
-
-    // 알림 설정 (선택사항)
-    if (eventData.notificationTime) {
-      await this.notificationSelect.click();
-      await this.page.getByRole('option').filter({ hasText: eventData.notificationTime }).click();
-    }
   }
 
   /**
    * 반복 일정을 생성하고 성공 메시지를 기다립니다.
    * fillRecurringEventForm() + submit() + 성공 메시지 대기를 한번에 수행합니다.
    */
-  async createRecurringEvent(eventData: {
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    description?: string;
-    location?: string;
-    category?: string;
-    repeatType: '매일' | '매주' | '매월' | '매년';
-    repeatInterval?: number;
-    repeatEndDate: string;
-    notificationTime?: string;
-  }) {
+  async createRecurringEvent(eventData: RecurringEventData): Promise<void> {
     await this.fillRecurringEventForm(eventData);
     await this.submitButton.click();
 
     // 일정 추가 성공 메시지 대기
-    await this.page.waitForSelector('text=일정이 추가되었습니다', { timeout: 5000 });
+    await this.page.waitForSelector('text=일정이 추가되었습니다', { timeout: TIMEOUTS.MEDIUM });
   }
 
   /**
    * 폼이 리셋될 때까지 대기합니다 (제목 필드가 비워짐).
    * 일정 수정 후 폼이 초기화되는지 확인할 때 유용합니다.
    */
-  async waitForFormReset() {
+  async waitForFormReset(): Promise<void> {
     await this.page.waitForFunction(
       () => (document.querySelector('#title') as HTMLInputElement)?.value === '',
-      { timeout: 3000 }
+      { timeout: TIMEOUTS.MEDIUM }
     );
   }
 
@@ -270,22 +258,22 @@ export class EventFormComponent {
    * 알림 드롭다운 열기
    * '알림 설정' 레이블 옆의 combobox를 클릭합니다.
    */
-  async openNotificationDropdown() {
+  async openNotificationDropdown(): Promise<void> {
     await this.page.locator('text=알림 설정').locator('..').getByRole('combobox').click();
   }
 
   /**
    * 알림 옵션 선택
-   * @param option 알림 시간 옵션 ('1분 전', '10분 전', '1시간 전', '1일 전')
+   * @param option NotificationOption ('1분 전', '10분 전', '1시간 전', '1일 전')
    */
-  async selectNotificationOption(option: '1분 전' | '10분 전' | '1시간 전' | '1일 전') {
+  async selectNotificationOption(option: NotificationOption): Promise<void> {
     await this.page.getByRole('option', { name: option }).click();
   }
 
   /**
    * 모든 알림 옵션이 표시되는지 확인
    */
-  async expectNotificationOptionsVisible() {
+  async expectNotificationOptionsVisible(): Promise<void> {
     await expect(this.page.getByRole('option', { name: '1분 전' })).toBeVisible();
     await expect(this.page.getByRole('option', { name: '10분 전' })).toBeVisible();
     await expect(this.page.getByRole('option', { name: '1시간 전' })).toBeVisible();
@@ -297,7 +285,7 @@ export class EventFormComponent {
    * 겹침 다이얼로그에서 취소 후 폼 데이터가 유지되는지 확인할 때 사용합니다.
    * @param expectedValue 예상되는 제목 값
    */
-  async expectTitleValue(expectedValue: string) {
+  async expectTitleValue(expectedValue: string): Promise<void> {
     await expect(this.titleInput).toHaveValue(expectedValue);
   }
 
@@ -306,7 +294,7 @@ export class EventFormComponent {
    * 날짜 셀 클릭 후 폼이 올바르게 채워졌는지 확인할 때 사용합니다.
    * @param expectedDate 예상되는 날짜 (YYYY-MM-DD 형식)
    */
-  async expectDateValue(expectedDate: string) {
+  async expectDateValue(expectedDate: string): Promise<void> {
     await expect(this.dateInput).toHaveValue(expectedDate);
   }
 }
