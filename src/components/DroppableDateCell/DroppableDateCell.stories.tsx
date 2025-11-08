@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 import { DroppableDateCell } from './DroppableDateCell';
 
-const meta = {
+const meta: Meta<typeof DroppableDateCell> = {
   title: 'Components/DroppableDateCell',
   component: DroppableDateCell,
   tags: ['autodocs'],
@@ -63,7 +63,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<typeof DroppableDateCell>;
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;
